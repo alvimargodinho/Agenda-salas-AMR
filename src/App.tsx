@@ -5,7 +5,7 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-// ============ ÍCONES SVG INLINE ============
+// ============ ÍCONES ============
 const IconBuilding = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <rect width="16" height="20" x="4" y="2" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/>
@@ -90,8 +90,40 @@ const IconPower = () => (
   </svg>
 );
 
-// ============ TOAST CUSTOMIZADO ============
-function Toast({ message, type, onClose }) {
+// ============ LOGO AMR ============
+const IconLogoAMR = ({ size = 'normal' }: { size?: 'normal' | 'small' }) => {
+  const isSmall = size === 'small';
+  return (
+    <div className="flex items-center gap-3">
+      <div 
+        className={`font-bold text-white tracking-tighter ${isSmall ? 'text-3xl' : 'text-6xl'}`}
+        style={{ fontFamily: 'Georgia, serif' }}
+      >
+        AMR
+      </div>
+      <div 
+        className={`rounded-full ${isSmall ? 'w-0.5 h-10' : 'w-1 h-16'}`}
+        style={{ 
+          background: 'linear-gradient(180deg, #E7BE92 0%, #633627 100%)' 
+        }}
+      />
+      <div className="text-left">
+        <div 
+          className={`font-bold text-white leading-tight ${isSmall ? 'text-sm' : 'text-xl'}`}
+          style={{ fontFamily: 'Georgia, serif' }}
+        >
+          ABEGG,<br/>MACORIM<br/>& ROTTA
+        </div>
+        <div className={`text-gray-300 tracking-widest ${isSmall ? 'text-[10px]' : 'text-xs'} mt-1`}>
+          ADVOGADOS ASSOCIADOS
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ============ TOAST ============
+function Toast({ message, type, onClose }: { message: string; type: 'success' | 'error' | 'warning'; onClose: () => void }) {
   useEffect(() => {
     const timer = setTimeout(onClose, 4000);
     return () => clearTimeout(timer);
@@ -111,18 +143,18 @@ function Toast({ message, type, onClose }) {
   );
 }
 
-// ============ APP PRINCIPAL ============
+// ============ APP ============
 export default function App() {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isRegistering, setIsRegistering] = useState(false);
   const [authError, setAuthError] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
-  const [salas, setSalas] = useState([]);
-  const [todasSalas, setTodasSalas] = useState([]); // Para gestores verem todas
-  const [reservas, setReservas] = useState([]);
+  const [salas, setSalas] = useState<any[]>([]);
+  const [todasSalas, setTodasSalas] = useState<any[]>([]);
+  const [reservas, setReservas] = useState<any[]>([]);
   const [isGestor, setIsGestor] = useState(false);
   const [selectedSala, setSelectedSala] = useState('');
   const [dataReserva, setDataReserva] = useState('');
@@ -131,22 +163,18 @@ export default function App() {
   const [tipoReuniao, setTipoReuniao] = useState('Interna');
   const [qtdParticipantes, setQtdParticipantes] = useState('');
   const [submitLoading, setSubmitLoading] = useState(false);
-  const [toast, setToast] = useState(null);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' } | null>(null);
 
-  // Filtros
   const [filtroData, setFiltroData] = useState(new Date().toISOString().split('T')[0]);
   const [filtroSala, setFiltroSala] = useState('');
   const [filtroStatus, setFiltroStatus] = useState('todas');
 
-  // Gestão de usuários
   const [showUserManagement, setShowUserManagement] = useState(false);
-  const [funcionariosAtivos, setFuncionariosAtivos] = useState([]);
+  const [funcionariosAtivos, setFuncionariosAtivos] = useState<any[]>([]);
   const [novoFuncionarioEmail, setNovoFuncionarioEmail] = useState('');
 
-  // Gestão de salas (NOVO)
   const [showRoomManagement, setShowRoomManagement] = useState(false);
 
-  // Recuperação de senha
   const [showResetModal, setShowResetModal] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
@@ -154,11 +182,10 @@ export default function App() {
 
   const DOMINIO_PERMITIDO = '@amradvogados.com.br';
 
-  const showToast = (message, type = 'success') => {
+  const showToast = (message: string, type: 'success' | 'error' | 'warning' = 'success') => {
     setToast({ message, type });
   };
 
-  // ============ INICIALIZAÇÃO ============
   useEffect(() => {
     const init = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -182,7 +209,7 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  const checkGestor = async (userEmail) => {
+  const checkGestor = async (userEmail: string) => {
     const { data, error } = await supabase
       .from('gestores')
       .select('email')
@@ -198,14 +225,13 @@ export default function App() {
     ]);
     
     if (dataSalas) {
-      setSalas(dataSalas.filter(s => s.ativo)); // Apenas salas ativas para usuários
-      setTodasSalas(dataSalas); // Todas as salas para gestores
+      setSalas(dataSalas.filter((s: any) => s.ativo));
+      setTodasSalas(dataSalas);
       if (dataSalas.length > 0 && !selectedSala) setSelectedSala(dataSalas[0].id);
     }
     if (dataReservas) setReservas(dataReservas);
   };
 
-  // ============ FUNÇÕES DE GESTÃO DE USUÁRIOS ============
   const carregarFuncionarios = async () => {
     const { data } = await supabase
       .from('funcionarios_ativos')
@@ -214,10 +240,10 @@ export default function App() {
     if (data) setFuncionariosAtivos(data);
   };
 
-  const adicionarFuncionario = async (e) => {
+  const adicionarFuncionario = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!novoFuncionarioEmail.toLowerCase().endsWith(DOMINIO_PERMITIDO)) {
-      showToast(' Use apenas e-mails corporativos.', 'error');
+      showToast('❌ Use apenas e-mails corporativos.', 'error');
       return;
     }
     const { error } = await supabase
@@ -233,43 +259,41 @@ export default function App() {
     }
   };
 
-  const toggleFuncionario = async (email, statusAtual) => {
+  const toggleFuncionario = async (email: string, statusAtual: boolean) => {
     const { error } = await supabase
       .from('funcionarios_ativos')
       .update({ ativo: !statusAtual })
       .eq('email', email);
     
     if (error) {
-      showToast(' Erro: ' + error.message, 'error');
+      showToast('❌ Erro: ' + error.message, 'error');
     } else {
       showToast(statusAtual ? '🚫 Funcionário desativado' : '✅ Funcionário reativado', 'success');
       await carregarFuncionarios();
     }
   };
 
-  // ============ GESTÃO DE SALAS (NOVO) ============
-  const toggleSalaAtiva = async (salaId, statusAtual) => {
+  const toggleSalaAtiva = async (salaId: number, statusAtual: boolean) => {
     const { error } = await supabase
       .from('salas')
       .update({ ativo: !statusAtual })
       .eq('id', salaId);
     
     if (error) {
-      showToast(' Erro: ' + error.message, 'error');
+      showToast('❌ Erro: ' + error.message, 'error');
     } else {
       showToast(statusAtual ? '🚫 Sala desativada' : '✅ Sala reativada', 'success');
       await carregarDados();
     }
   };
 
-  // ============ RECUPERAÇÃO DE SENHA ============
-  const handleResetPassword = async (e) => {
+  const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setResetMessage('');
     setResetLoading(true);
     
     if (!resetEmail.toLowerCase().endsWith(DOMINIO_PERMITIDO)) {
-      setResetMessage(' Apenas e-mails corporativos são permitidos.');
+      setResetMessage('❌ Apenas e-mails corporativos são permitidos.');
       setResetLoading(false);
       return;
     }
@@ -292,14 +316,13 @@ export default function App() {
     }
   };
 
-  // ============ AUTENTICAÇÃO ============
-  const traduzirErro = (errorMsg) => {
+  const traduzirErro = (errorMsg: string) => {
     const msg = errorMsg.toLowerCase();
     if (msg.includes('invalid login credentials') || msg.includes('invalid email or password')) {
       return '❌ E-mail ou senha incorretos, ou conta não existe.\n\n Não tem conta? Clique em "Primeiro acesso? Criar conta" abaixo.';
     }
     if (msg.includes('email not confirmed') || msg.includes('email confirmation')) {
-      return '⚠️ Seu e-mail ainda não foi confirmado. Verifique sua caixa de entrada (e o spam) para ativar sua conta.';
+      return '️ Seu e-mail ainda não foi confirmado. Verifique sua caixa de entrada (e o spam) para ativar sua conta.';
     }
     if (msg.includes('too many requests') || msg.includes('rate limit')) {
       return '⏳ Muitas tentativas de login. Aguarde alguns minutos e tente novamente.';
@@ -308,12 +331,12 @@ export default function App() {
       return '⚠️ Este e-mail já está cadastrado no sistema. Tente fazer login.';
     }
     if (msg.includes('password') && msg.includes('weak')) {
-      return '⚠️ A senha é muito fraca. Use pelo menos 6 caracteres.';
+      return '️ A senha é muito fraca. Use pelo menos 6 caracteres.';
     }
     return '❌ Erro: ' + errorMsg;
   };
 
-  const handleResendConfirmation = async (emailParaReenviar) => {
+  const handleResendConfirmation = async (emailParaReenviar: string) => {
     const { error } = await supabase.auth.resend({
       type: 'signup',
       email: emailParaReenviar.toLowerCase(),
@@ -326,7 +349,7 @@ export default function App() {
     }
   };
 
-  const handleAuth = async (e) => {
+  const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError('');
     setAuthLoading(true);
@@ -354,7 +377,7 @@ export default function App() {
       }
       
       if (data.user?.identities?.length === 0) {
-        const msg = '⚠️ Este e-mail já está cadastrado. Tente fazer login.';
+        const msg = '️ Este e-mail já está cadastrado. Tente fazer login.';
         setAuthError(msg);
         showToast(msg, 'error');
         setAuthLoading(false);
@@ -407,8 +430,7 @@ export default function App() {
     setAuthLoading(false);
   };
 
-  // ============ RESERVAS ============
-  const handleNovaReserva = async (e) => {
+  const handleNovaReserva = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedSala || !dataReserva || !horaInicio || !horaFim || !qtdParticipantes) {
       showToast('⚠️ Preencha todos os campos.', 'warning');
@@ -421,14 +443,13 @@ export default function App() {
       return;
     }
     
-    // ✅ NOVO: Gestores podem exceder capacidade
     if (!isGestor && qtd > salaEscolhida.capacidade_maxima) {
-      showToast(`⚠️ A capacidade máxima da ${salaEscolhida.nome} é de ${salaEscolhida.capacidade_maxima} pessoas.`, 'warning');
+      showToast(`️ A capacidade máxima da ${salaEscolhida.nome} é de ${salaEscolhida.capacidade_maxima} pessoas.`, 'warning');
       return;
     }
     
     if (horaFim <= horaInicio) {
-      showToast('⚠️ O horário de término deve ser posterior ao horário de início.', 'warning');
+      showToast('️ O horário de término deve ser posterior ao horário de início.', 'warning');
       return;
     }
     const hoje = new Date().toISOString().split('T')[0];
@@ -445,7 +466,7 @@ export default function App() {
        (horaInicio <= r.hora_inicio && horaFim >= r.hora_fim))
     );
     if (conflito) {
-      showToast('⚠️ Conflito de Horário! Esta sala já possui uma reserva para este período.', 'warning');
+      showToast('️ Conflito de Horário! Esta sala já possui uma reserva para este período.', 'warning');
       return;
     }
     setSubmitLoading(true);
@@ -457,7 +478,7 @@ export default function App() {
       hora_fim: horaFim,
       tipo_reuniao: tipoReuniao,
       quantidade_participantes: qtd,
-      status: isGestor ? 'aprovada' : 'pendente' // ✅ Gestores aprovam automaticamente
+      status: isGestor ? 'aprovada' : 'pendente'
     }]);
     setSubmitLoading(false);
     if (error) {
@@ -471,7 +492,7 @@ export default function App() {
     }
   };
 
-  const alterarStatusReserva = async (id, novoStatus) => {
+  const alterarStatusReserva = async (id: number, novoStatus: string) => {
     const { error } = await supabase.from('reservas').update({ status: novoStatus }).eq('id', id);
     if (error) {
       showToast('❌ Erro: ' + error.message, 'error');
@@ -481,8 +502,7 @@ export default function App() {
     }
   };
 
-  // ✅ NOVO: Cancelar/Deletar reserva (apenas gestores)
-  const cancelarReserva = async (id) => {
+  const cancelarReserva = async (id: number) => {
     if (!window.confirm('Tem certeza que deseja cancelar esta reserva? Esta ação não pode ser desfeita.')) {
       return;
     }
@@ -495,8 +515,7 @@ export default function App() {
     }
   };
 
-  // ============ FILTRAGEM ============
-  const filtrarReservas = (reservasLista) => {
+  const filtrarReservas = (reservasLista: any[]) => {
     return reservasLista.filter(r => {
       if (filtroData && r.data_reserva !== filtroData) return false;
       if (filtroSala && r.sala_id !== parseInt(filtroSala)) return false;
@@ -508,80 +527,109 @@ export default function App() {
     });
   };
 
-  // ============ LOADING ============
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 to-rose-50">
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #263448 0%, #1a2633 100%)' }}>
         <div className="flex flex-col items-center gap-3">
-          <div className="w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
-          <p className="text-gray-600 text-sm font-medium">Carregando...</p>
+          <div className="w-12 h-12 border-4 border-[#E7BE92] border-t-transparent rounded-full animate-spin" />
+          <p className="text-white text-sm font-medium">Carregando...</p>
         </div>
       </div>
     );
   }
 
-  // ============ TELA DE LOGIN ============
   if (!user) {
     return (
       <div className="min-h-screen flex" style={{ fontFamily: 'Inter, sans-serif' }}>
         {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
         
-        <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-orange-500 via-orange-600 to-rose-600 p-12 flex-col justify-between text-white relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl" />
-          <div className="absolute bottom-0 left-0 w-80 h-80 bg-white/10 rounded-full translate-y-1/2 -translate-x-1/2 blur-3xl" />
+        <div 
+          className="hidden lg:flex lg:w-1/2 p-12 flex-col justify-between text-white relative overflow-hidden"
+          style={{ 
+            background: 'linear-gradient(135deg, #263448 0%, #1a2633 100%)'
+          }}
+        >
+          <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl" />
+          <div className="absolute bottom-0 left-0 w-80 h-80 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2 blur-3xl" />
+          
           <div className="relative z-10">
             <div className="flex items-center gap-3 mb-2">
-              <div className="w-12 h-12 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center">
-                <IconBuilding />
-              </div>
-              <h1 className="text-3xl font-bold">AgendaSalas</h1>
+              <IconLogoAMR />
             </div>
-            <p className="text-white/80 text-sm">Sistema corporativo de reservas</p>
+            <p className="text-white/70 text-sm mt-4">Sistema Corporativo de Reservas de Salas</p>
           </div>
+          
           <div className="relative z-10 space-y-6">
-            <h2 className="text-4xl font-bold leading-tight">
-              Reserve salas em <br />segundos, não em minutos.
+            <h2 className="text-4xl font-bold leading-tight" style={{ fontFamily: 'Georgia, serif' }}>
+              Gestão inteligente <br />de salas de reunião
             </h2>
-            <p className="text-white/80 text-lg max-w-md">
-              Controle inteligente de ocupação, aprovação em tempo real e visão completa da agenda corporativa.
+            <p className="text-white/70 text-lg max-w-md">
+              Controle de ocupação, aprovação em tempo real e visão completa da agenda de salas de reunião da AMR Advogados.
             </p>
-            <div className="flex gap-6 pt-4">
-              <div><div className="text-3xl font-bold">3</div><div className="text-sm text-white/70">Salas</div></div>
-              <div><div className="text-3xl font-bold">24/7</div><div className="text-sm text-white/70">Disponível</div></div>
-              <div><div className="text-3xl font-bold">100%</div><div className="text-sm text-white/70">Online</div></div>
+            <div className="flex gap-8 pt-4">
+              <div>
+                <div className="text-3xl font-bold" style={{ color: '#E7BE92' }}>3</div>
+                <div className="text-sm text-white/60">Salas</div>
+              </div>
+              <div>
+                <div className="text-3xl font-bold" style={{ color: '#E7BE92' }}>24/7</div>
+                <div className="text-sm text-white/60">Disponível</div>
+              </div>
+              <div>
+                <div className="text-3xl font-bold" style={{ color: '#E7BE92' }}>100%</div>
+                <div className="text-sm text-white/60">Online</div>
+              </div>
             </div>
           </div>
-          <div className="relative z-10 text-sm text-white/60">© 2026 AgendaSalas • Corporativo</div>
+          
+          <div className="relative z-10 text-sm text-white/150">
+            © 2026 AMR Advogados • Abegg, Macorim & Rotta
+          </div>
+          <div className="relative z-10 text-sm text-white/50">
+            Desenvolvido por Alvimar Godinho & IA
+          </div>
         </div>
 
         <div className="flex-1 flex items-center justify-center p-6 bg-gray-50">
           <div className="w-full max-w-md">
-            <div className="lg:hidden flex items-center gap-2 mb-8 justify-center">
-              <div className="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center text-white">
-                <IconBuilding />
+            <div className="lg:hidden flex items-center justify-center mb-8">
+              <div className="bg-[#263448] rounded-2xl p-4">
+                <IconLogoAMR size="small" />
               </div>
-              <h1 className="text-2xl font-bold text-gray-800">AgendaSalas</h1>
             </div>
+            
             <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
-              <h2 className="text-2xl font-bold text-gray-800 mb-1">
+              <h2 className="text-2xl font-bold text-[#263448] mb-1" style={{ fontFamily: 'Georgia, serif' }}>
                 {isRegistering ? 'Criar sua conta' : 'Bem-vindo de volta'}
               </h2>
               <p className="text-sm text-gray-500 mb-6">
                 {isRegistering ? 'Use seu e-mail corporativo' : 'Entre com suas credenciais'}
               </p>
+              
               <form onSubmit={handleAuth} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">E-mail corporativo</label>
-                  <input type="email" value={email} onChange={e => setEmail(e.target.value)} required
+                  <input 
+                    type="email" 
+                    value={email} 
+                    onChange={e => setEmail(e.target.value)} 
+                    required
                     placeholder={`seu.nome${DOMINIO_PERMITIDO}`}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition" />
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#E7BE92] focus:border-transparent outline-none transition" 
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">Senha</label>
-                  <input type="password" value={password} onChange={e => setPassword(e.target.value)} required
+                  <input 
+                    type="password" 
+                    value={password} 
+                    onChange={e => setPassword(e.target.value)} 
+                    required
                     placeholder="••••••••"
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition" />
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#E7BE92] focus:border-transparent outline-none transition" 
+                  />
                 </div>
+                
                 {authError && (
                   <div className="p-3 bg-red-50 border border-red-200 rounded-xl">
                     <p className="text-red-700 text-xs whitespace-pre-line">{authError}</p>
@@ -597,7 +645,7 @@ export default function App() {
                         )}
                         <button 
                           onClick={() => { setIsRegistering(true); setAuthError(''); }}
-                          className="text-xs text-orange-600 hover:text-orange-700 font-semibold underline text-left"
+                          className="text-xs text-[#633627] hover:text-[#633627]/80 font-semibold underline text-left"
                         >
                            Criar minha conta agora
                         </button>
@@ -605,21 +653,32 @@ export default function App() {
                     )}
                   </div>
                 )}
-                <button type="submit" disabled={authLoading}
-                  className="w-full bg-gradient-to-r from-orange-500 to-rose-500 text-white py-2.5 rounded-xl font-semibold hover:shadow-lg hover:shadow-orange-500/30 transition disabled:opacity-50">
+                
+                <button 
+                  type="submit" 
+                  disabled={authLoading}
+                  className="w-full bg-[#263448] text-white py-2.5 rounded-xl font-semibold hover:bg-[#1a2633] transition disabled:opacity-50"
+                >
                   {authLoading ? 'Aguarde...' : (isRegistering ? 'Criar conta' : 'Entrar')}
                 </button>
               </form>
+              
               <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-xl flex gap-2">
                 <div className="flex-shrink-0 mt-0.5 text-amber-600"><IconAlert /></div>
                 <p className="text-xs text-amber-800">Apenas e-mails do domínio corporativo são permitidos.</p>
               </div>
-              <button onClick={() => setShowResetModal(true)}
-                className="w-full mt-3 text-sm text-orange-600 hover:text-orange-700 transition text-center font-medium flex items-center justify-center gap-1.5">
+              
+              <button 
+                onClick={() => setShowResetModal(true)}
+                className="w-full mt-3 text-sm text-[#633627] hover:text-[#633627]/80 transition text-center font-medium flex items-center justify-center gap-1.5"
+              >
                 <IconKey /> Esqueci minha senha
               </button>
-              <button onClick={() => { setIsRegistering(!isRegistering); setAuthError(''); }}
-                className="w-full mt-2 text-sm text-gray-500 hover:text-orange-600 transition text-center">
+              
+              <button 
+                onClick={() => { setIsRegistering(!isRegistering); setAuthError(''); }}
+                className="w-full mt-2 text-sm text-gray-500 hover:text-[#263448] transition text-center"
+              >
                 {isRegistering ? 'Já tenho conta → Fazer login' : 'Primeiro acesso? Criar conta'}
               </button>
             </div>
@@ -629,24 +688,28 @@ export default function App() {
         {showResetModal && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                  <IconKey /> Recuperar Senha
-                </h3>
-                <button onClick={() => { setShowResetModal(false); setResetMessage(''); setResetEmail(''); }}
-                  className="text-gray-400 hover:text-gray-600 transition">
-                  <IconX />
-                </button>
+              <div className="flex items-center justify-center mb-6">
+                <div className="bg-[#263448] rounded-xl p-3">
+                  <IconLogoAMR size="small" />
+                </div>
               </div>
-              <p className="text-sm text-gray-600 mb-4">
+              <h3 className="text-xl font-bold text-[#263448] text-center mb-2" style={{ fontFamily: 'Georgia, serif' }}>
+                Recuperar Senha
+              </h3>
+              <p className="text-sm text-gray-600 mb-4 text-center">
                 Digite seu e-mail corporativo e enviaremos um link para redefinir sua senha.
               </p>
               <form onSubmit={handleResetPassword} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">E-mail corporativo</label>
-                  <input type="email" value={resetEmail} onChange={e => setResetEmail(e.target.value)} required
+                  <input 
+                    type="email" 
+                    value={resetEmail} 
+                    onChange={e => setResetEmail(e.target.value)} 
+                    required
                     placeholder={`seu.nome${DOMINIO_PERMITIDO}`}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none" />
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#E7BE92] outline-none" 
+                  />
                 </div>
                 {resetMessage && (
                   <div className={`p-3 rounded-xl text-sm ${
@@ -655,13 +718,18 @@ export default function App() {
                     {resetMessage}
                   </div>
                 )}
-                <button type="submit" disabled={resetLoading}
-                  className="w-full bg-gradient-to-r from-orange-500 to-rose-500 text-white py-2.5 rounded-xl font-semibold hover:shadow-lg transition disabled:opacity-50">
+                <button 
+                  type="submit" 
+                  disabled={resetLoading}
+                  className="w-full bg-[#263448] text-white py-2.5 rounded-xl font-semibold hover:bg-[#1a2633] transition disabled:opacity-50"
+                >
                   {resetLoading ? 'Enviando...' : 'Enviar link de recuperação'}
                 </button>
               </form>
-              <button onClick={() => { setShowResetModal(false); setResetMessage(''); setResetEmail(''); }}
-                className="w-full mt-3 text-sm text-gray-500 hover:text-gray-700 transition text-center">
+              <button 
+                onClick={() => { setShowResetModal(false); setResetMessage(''); setResetEmail(''); }}
+                className="w-full mt-3 text-sm text-gray-500 hover:text-gray-700 transition text-center"
+              >
                 Voltar para o login
               </button>
             </div>
@@ -671,7 +739,6 @@ export default function App() {
     );
   }
 
-  // ============ TELA PRINCIPAL ============
   const reservasAtivas = reservas.filter(r => r.status !== 'recusada');
   const reservasPendentes = reservas.filter(r => r.status === 'pendente');
   const reservasFiltradas = filtrarReservas(reservasAtivas);
@@ -683,11 +750,18 @@ export default function App() {
       <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-rose-500 rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/20 text-white">
-              <IconBuilding />
+            <div 
+              className="rounded-xl p-2 flex items-center justify-center"
+              style={{ 
+                background: 'linear-gradient(135deg, #263448 0%, #1a2633 100%)'
+              }}
+            >
+              <div className="text-white font-bold text-lg tracking-tighter" style={{ fontFamily: 'Georgia, serif' }}>
+                AMR
+              </div>
             </div>
             <div>
-              <h1 className="font-bold text-gray-800">AgendaSalas</h1>
+              <h1 className="font-bold text-[#263448]" style={{ fontFamily: 'Georgia, serif' }}>AgendaSalas</h1>
               <p className="text-xs text-gray-500">{user.email}</p>
             </div>
           </div>
@@ -699,20 +773,22 @@ export default function App() {
                 </span>
                 <button 
                   onClick={() => { setShowRoomManagement(true); }}
-                  className="flex items-center gap-2 px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-xl transition text-sm font-medium border border-blue-200"
+                  className="flex items-center gap-2 px-4 py-2 text-[#263448] hover:bg-[#263448]/10 rounded-xl transition text-sm font-medium border border-[#263448]/20"
                 >
                   <IconBuilding /> Gerenciar Salas
                 </button>
                 <button 
                   onClick={() => { setShowUserManagement(true); carregarFuncionarios(); }}
-                  className="flex items-center gap-2 px-4 py-2 text-purple-600 hover:bg-purple-50 rounded-xl transition text-sm font-medium border border-purple-200"
+                  className="flex items-center gap-2 px-4 py-2 text-[#633627] hover:bg-[#633627]/10 rounded-xl transition text-sm font-medium border border-[#633627]/20"
                 >
                   <IconUsers /> Gerenciar Usuários
                 </button>
               </>
             )}
-            <button onClick={() => supabase.auth.signOut()}
-              className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-xl transition text-sm font-medium">
+            <button 
+              onClick={() => supabase.auth.signOut()}
+              className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-xl transition text-sm font-medium"
+            >
               <IconLogOut /> Sair
             </button>
           </div>
@@ -722,8 +798,8 @@ export default function App() {
       <div className="max-w-7xl mx-auto px-6 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
-            <h2 className="text-lg font-bold mb-4 text-gray-800 flex items-center gap-2">
-              <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center text-orange-600">
+            <h2 className="text-lg font-bold mb-4 text-[#263448] flex items-center gap-2" style={{ fontFamily: 'Georgia, serif' }}>
+              <div className="w-8 h-8 bg-[#263448]/10 rounded-lg flex items-center justify-center text-[#263448]">
                 <IconCalendar />
               </div>
               Solicitar Nova Reserva
@@ -733,17 +809,17 @@ export default function App() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">Escolha a Sala</label>
                 <select value={selectedSala} onChange={e => setSelectedSala(e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none bg-white">
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#E7BE92] outline-none bg-white">
                   {salas.map(s => <option key={s.id} value={s.id}>{s.nome} (Máx: {s.capacidade_maxima} pessoas)</option>)}
                 </select>
               </div>
               <div>
                 <label className="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-1.5">
-                  <IconCalendar /> Data da Reserva
+                  <IconCalendar /> Data da Reunião
                 </label>
                 <input type="date" value={dataReserva} onChange={e => setDataReserva(e.target.value)}
                   min={new Date().toISOString().split('T')[0]} required
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none" />
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#E7BE92] outline-none" />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -751,35 +827,35 @@ export default function App() {
                     <IconClock /> Início
                   </label>
                   <input type="time" value={horaInicio} onChange={e => setHoraInicio(e.target.value)} required
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none" />
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#E7BE92] outline-none" />
                 </div>
                 <div>
                   <label className="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-1.5">
                     <IconClock /> Término
                   </label>
                   <input type="time" value={horaFim} onChange={e => setHoraFim(e.target.value)} required
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none" />
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#E7BE92] outline-none" />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Objetivo da Reserva</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Tipo de Reunião</label>
                 <select value={tipoReuniao} onChange={e => setTipoReuniao(e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none bg-white">
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#E7BE92] outline-none bg-white">
                   <option value="Interna">Interna (Equipe AMR)</option>
-                  <option value="Externa">Externa (Convidados)</option>
+                  <option value="Externa">Externa (Clientes)</option>
                 </select>
               </div>
               <div>
                 <label className="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-1.5">
                   <IconUsers /> Participantes
-                  {isGestor && <span className="text-xs text-purple-600">(Sem limite)</span>}
+                  {isGestor && <span className="text-xs text-[#633627]">(Sem limite)</span>}
                 </label>
                 <input type="number" value={qtdParticipantes} onChange={e => setQtdParticipantes(e.target.value)}
                   required min="1" placeholder="Ex: 4"
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none" />
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#E7BE92] outline-none" />
               </div>
               <button type="submit" disabled={submitLoading}
-                className="w-full bg-gradient-to-r from-orange-500 to-rose-500 text-white py-3 rounded-xl font-semibold hover:shadow-lg hover:shadow-orange-500/30 transition disabled:opacity-50 flex items-center justify-center gap-2">
+                className="w-full bg-[#263448] text-white py-3 rounded-xl font-semibold hover:bg-[#1a2633] transition disabled:opacity-50 flex items-center justify-center gap-2">
                 <IconSend />
                 {submitLoading ? 'Enviando...' : (isGestor ? 'Criar Reserva Aprovada' : 'Enviar ao gestor')}
               </button>
@@ -788,8 +864,8 @@ export default function App() {
 
           <div className="lg:col-span-2 space-y-4">
             <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
-              <h2 className="text-lg font-bold mb-4 text-gray-800 flex items-center gap-2">
-                <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600">
+              <h2 className="text-lg font-bold mb-4 text-[#263448] flex items-center gap-2" style={{ fontFamily: 'Georgia, serif' }}>
+                <div className="w-8 h-8 bg-[#263448]/10 rounded-lg flex items-center justify-center text-[#263448]">
                   <IconFilter />
                 </div>
                 Filtros de Visualização
@@ -798,12 +874,12 @@ export default function App() {
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Data</label>
                   <input type="date" value={filtroData} onChange={e => setFiltroData(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none text-sm" />
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#E7BE92] outline-none text-sm" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Sala</label>
                   <select value={filtroSala} onChange={e => setFiltroSala(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none bg-white text-sm">
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#E7BE92] outline-none bg-white text-sm">
                     <option value="">Todas as salas</option>
                     {salas.map(s => <option key={s.id} value={s.id}>{s.nome}</option>)}
                   </select>
@@ -812,7 +888,7 @@ export default function App() {
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Status</label>
                     <select value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none bg-white text-sm">
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#E7BE92] outline-none bg-white text-sm">
                       <option value="todas">Todas</option>
                       <option value="aprovadas">Aprovadas</option>
                       <option value="pendentes">Pendentes</option>
@@ -822,15 +898,15 @@ export default function App() {
               </div>
               {(filtroData || filtroSala || (isGestor && filtroStatus !== 'todas')) && (
                 <button onClick={() => { setFiltroData(new Date().toISOString().split('T')[0]); setFiltroSala(''); setFiltroStatus('todas'); }}
-                  className="mt-3 text-xs text-orange-600 hover:text-orange-700 font-medium">
+                  className="mt-3 text-xs text-[#633627] hover:text-[#633627]/80 font-medium">
                   Limpar filtros
                 </button>
               )}
             </div>
 
             <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
-              <h2 className="text-lg font-bold mb-4 text-gray-800 flex items-center gap-2">
-                <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600">
+              <h2 className="text-lg font-bold mb-4 text-[#263448] flex items-center gap-2" style={{ fontFamily: 'Georgia, serif' }}>
+                <div className="w-8 h-8 bg-[#263448]/10 rounded-lg flex items-center justify-center text-[#263448]">
                   <IconCalendar />
                 </div>
                 Ocupação das Salas
@@ -885,7 +961,7 @@ export default function App() {
 
             {isGestor && (
               <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
-                <h2 className="text-lg font-bold mb-4 text-gray-800 flex items-center gap-2">
+                <h2 className="text-lg font-bold mb-4 text-[#263448] flex items-center gap-2" style={{ fontFamily: 'Georgia, serif' }}>
                   <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center text-purple-600">
                     <IconShield />
                   </div>
@@ -942,7 +1018,7 @@ export default function App() {
           <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
             <div className="p-6 border-b border-gray-200 flex items-center justify-between">
               <div>
-                <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                <h3 className="text-xl font-bold text-[#263448] flex items-center gap-2" style={{ fontFamily: 'Georgia, serif' }}>
                   <IconUsers /> Gestão de Usuários
                 </h3>
                 <p className="text-sm text-gray-500 mt-1">
@@ -959,9 +1035,9 @@ export default function App() {
               <form onSubmit={adicionarFuncionario} className="flex gap-2">
                 <input type="email" value={novoFuncionarioEmail} onChange={e => setNovoFuncionarioEmail(e.target.value)}
                   placeholder={`novo.funcionario${DOMINIO_PERMITIDO}`} required
-                  className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none" />
+                  className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#E7BE92] outline-none" />
                 <button type="submit"
-                  className="bg-gradient-to-r from-orange-500 to-rose-500 text-white px-6 py-2.5 rounded-xl font-semibold hover:shadow-lg transition">
+                  className="bg-[#263448] text-white px-6 py-2.5 rounded-xl font-semibold hover:bg-[#1a2633] transition">
                   Adicionar
                 </button>
               </form>
@@ -1006,13 +1082,12 @@ export default function App() {
         </div>
       )}
 
-      {/* ✅ NOVO: MODAL DE GESTÃO DE SALAS */}
       {showRoomManagement && isGestor && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
             <div className="p-6 border-b border-gray-200 flex items-center justify-between">
               <div>
-                <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                <h3 className="text-xl font-bold text-[#263448] flex items-center gap-2" style={{ fontFamily: 'Georgia, serif' }}>
                   <IconBuilding /> Gestão de Salas
                 </h3>
                 <p className="text-sm text-gray-500 mt-1">
@@ -1036,7 +1111,7 @@ export default function App() {
                     }`}>
                       <div className="flex items-center gap-3">
                         <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold text-lg ${
-                          s.ativo ? 'bg-emerald-500 text-white' : 'bg-gray-300 text-gray-600'
+                          s.ativo ? 'bg-[#263448] text-white' : 'bg-gray-300 text-gray-600'
                         }`}>
                           <IconBuilding />
                         </div>
