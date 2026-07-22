@@ -401,97 +401,87 @@ export default function App() {
     setAuthError('');
     setAuthLoading(true);
     
-    if (!email.toLowerCase().endsWith(DOMINIO_PERMITIDO)) {
-      const msg = `❌ Apenas e-mails corporativos são permitidos.\n\nSeu e-mail deve terminar com: ${DOMINIO_PERMITIDO}`;
-      setAuthError(msg);
-      showToast(msg, 'error');
-      setAuthLoading(false);
-      return;
-    }
-
-    if (isRegistering) {
-      // PRIMEIRO: Verifica se o e-mail está autorizado ANTES de tentar criar
-      const ehFuncionarioAtivo = await verificarSeEhFuncionarioAtivo(email);
-      
-      if (!ehFuncionarioAtivo) {
-        const msg = '❌ Seu e-mail não está autorizado. Contate o gestor para ser adicionado à lista.';
+    try {
+      // Validação de domínio
+      if (!email.toLowerCase().endsWith(DOMINIO_PERMITIDO)) {
+        const msg = `❌ Apenas e-mails corporativos são permitidos.\n\nSeu e-mail deve terminar com: ${DOMINIO_PERMITIDO}`;
         setAuthError(msg);
         showToast(msg, 'error');
-        setAuthLoading(false);
         return;
       }
       
-      // SEGUNDO: Só tenta criar se estiver autorizado
-      const { data, error } = await supabase.auth.signUp({ 
-        email: email.toLowerCase(), 
-        password 
-      });
-      
-      if (error) {
-        const msg = traduzirErro(error.message);
-        setAuthError(msg);
-        showToast(msg, 'error');
-        setAuthLoading(false);
-        return;
-      }
-      
-      if (data.user?.identities?.length === 0) {
-        // E-mail já existe e está confirmado
-        const msg = '️ Este e-mail já está cadastrado. Tente fazer login.';
-        setAuthError(msg);
-        showToast(msg, 'error');
-        setAuthLoading(false);
-        return;
-      }
-
-      // Sucesso no cadastro
-      showToast('✅ Cadastro realizado! Faça login.', 'success');
-      setEmail('');
-      setPassword('');    
-
-    } else {
-      const { error } = await supabase.auth.signInWithPassword({ 
-        email: email.toLowerCase(), 
-        password 
-      });
-      
-      if (error) {
-        const msg = traduzirErro(error.message);
-        setAuthError(msg);
-        showToast(msg, 'error');
-        setAuthLoading(false);
-        return;
-      }
-
-      const verificarSeEhFuncionarioAtivo = async (email: string) => {
-        const { data, error } = await supabase
+      if (isRegistering) {
+        // PRIMEIRO: Verifica se está autorizado
+        const { data: funcionarioAtivo, error: funcError } = await supabase
           .from('funcionarios_ativos')
           .select('ativo')
           .eq('email', email.toLowerCase())
           .maybeSingle();
         
-        if (error || !data || !data.ativo) {
-          return false;
+        if (funcError || !funcionarioAtivo || !funcionarioAtivo.ativo) {
+          setAuthError('❌ Seu e-mail não está autorizado. Contate o gestor para ser adicionado à lista.');
+          showToast('❌ E-mail não autorizado', 'error');
+          return;
         }
-        return true;
-      };
-
-      const { data: funcionarioAtivo } = await supabase
-        .from('funcionarios_ativos')
-        .select('ativo')
-        .eq('email', email.toLowerCase())
-        .maybeSingle();
-      
-      if (!funcionarioAtivo || !funcionarioAtivo.ativo) {
-        await supabase.auth.signOut();
-        const msg = '❌ Sua conta não está autorizada ou foi desativada. Contate o gestor.';
-        setAuthError(msg);
-        showToast(msg, 'error');
+        
+        // SEGUNDO: Verifica se já existe conta
+        const { data: existingUser } = await supabase.auth.signInWithPassword({
+          email: email.toLowerCase(),
+          password: password // Tenta login para ver se já existe
+        });
+        
+        if (existingUser) {
+          // Já existe e consegue fazer login
+          setAuthError('⚠️ Este e-mail já está cadastrado. Tente fazer login.');
+          showToast('E-mail já cadastrado', 'warning');
+          return;
+        }
+        
+        // TERCEIRO: Tenta criar
+        const { data, error } = await supabase.auth.signUp({ 
+          email: email.toLowerCase(), 
+          password 
+        });
+        
+        if (error) throw error;
+        
+        showToast('✅ Cadastro realizado! Faça login.', 'success');
+        setEmail('');
+        setPassword('');
+        setIsRegistering(false);
+        
+      } else {
+        // LOGIN normal
+        const { error } = await supabase.auth.signInWithPassword({ 
+          email: email.toLowerCase(), 
+          password 
+        });
+        
+        if (error) throw error;
+        
+        // Verifica se ainda está ativo após login
+        const { data: funcionarioAtivo } = await supabase
+          .from('funcionarios_ativos')
+          .select('ativo')
+          .eq('email', email.toLowerCase())
+          .maybeSingle();
+        
+        if (!funcionarioAtivo || !funcionarioAtivo.ativo) {
+          await supabase.auth.signOut();
+          setAuthError('❌ Sua conta não está autorizada ou foi desativada. Contate o gestor.');
+          showToast('Conta desativada', 'error');
+        }
       }
+    } catch (err: any) {
+      const msg = traduzirErro(err.message);
+      setAuthError(msg);
+      showToast(msg, 'error');
+    } finally {
+      // GARANTE que sempre vai resetar o loading
+      setAuthLoading(false);
     }
-    setAuthLoading(false);
   };
-
+  
   const handleNovaReserva = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedSala || !dataReserva || !horaInicio || !horaFim || !qtdParticipantes) {
