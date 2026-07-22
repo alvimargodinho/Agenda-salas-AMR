@@ -337,15 +337,26 @@ export default function App() {
   };
 
   const handleResendConfirmation = async (emailParaReenviar: string) => {
-    const { error } = await supabase.auth.resend({
-      type: 'signup',
-      email: emailParaReenviar.toLowerCase(),
+    setAuthError(''); // Limpa o erro vermelho anterior
+    setAuthLoading(true); // Mostra "Aguarde..." no botão
+    
+    const { error } = await supabase.auth.resend({ 
+      type: 'signup', 
+      email: emailParaReenviar.toLowerCase() 
     });
     
+    setAuthLoading(false);
+
     if (error) {
-      showToast('❌ Erro ao reenviar: ' + error.message, 'error');
+      // Trata o erro de limite de tentativas do Supabase
+      if (error.message.toLowerCase().includes('rate limit') || error.message.toLowerCase().includes('too many')) {
+        setAuthError(' Por segurança, aguarde 5 minutos antes de solicitar um novo e-mail.');
+      } else {
+        setAuthError('❌ Erro ao reenviar: ' + error.message);
+      }
     } else {
-      showToast('✅ E-mail de confirmação reenviado! Verifique sua caixa de entrada.', 'success');
+      // Mostra a mensagem de sucesso no lugar do erro vermelho
+      setAuthError('✅ Um novo e-mail de confirmação foi enviado! Verifique sua caixa de entrada e o spam.');
     }
   };
 
@@ -376,10 +387,14 @@ export default function App() {
         return;
       }
       
+      // Se identities for 0, significa que o e-mail já existe no Supabase mas não está confirma
       if (data.user?.identities?.length === 0) {
-        const msg = '️ Este e-mail já está cadastrado. Tente fazer login.';
+        // Tenta reenviar o e-mail de confirmação automaticamente
+        await supabase.auth.resend({ type: 'signup', email: email.toLowerCase() });
+        
+        const msg = '⚠️ Este e-mail já está cadastrado mas não foi confirmado.\n\nEnviamos um novo link de confirmação para o seu e-mail.';
         setAuthError(msg);
-        showToast(msg, 'error');
+        showToast(' Novo e-mail de confirmação enviado!', 'success');
         setAuthLoading(false);
         return;
       }
