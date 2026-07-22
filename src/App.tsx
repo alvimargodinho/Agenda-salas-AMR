@@ -408,8 +408,20 @@ export default function App() {
       setAuthLoading(false);
       return;
     }
-    
+
     if (isRegistering) {
+      // PRIMEIRO: Verifica se o e-mail está autorizado ANTES de tentar criar
+      const ehFuncionarioAtivo = await verificarSeEhFuncionarioAtivo(email);
+      
+      if (!ehFuncionarioAtivo) {
+        const msg = '❌ Seu e-mail não está autorizado. Contate o gestor para ser adicionado à lista.';
+        setAuthError(msg);
+        showToast(msg, 'error');
+        setAuthLoading(false);
+        return;
+      }
+      
+      // SEGUNDO: Só tenta criar se estiver autorizado
       const { data, error } = await supabase.auth.signUp({ 
         email: email.toLowerCase(), 
         password 
@@ -423,34 +435,20 @@ export default function App() {
         return;
       }
       
-      // Se identities for 0, significa que o e-mail já existe no Supabase mas não está confirma
       if (data.user?.identities?.length === 0) {
-        // Tenta reenviar o e-mail de confirmação automaticamente
-        await supabase.auth.resend({ type: 'signup', email: email.toLowerCase() });
-        
-        const msg = '⚠️ Este e-mail já está cadastrado mas não foi confirmado.\n\nEnviamos um novo link de confirmação para o seu e-mail.';
+        // E-mail já existe e está confirmado
+        const msg = '️ Este e-mail já está cadastrado. Tente fazer login.';
         setAuthError(msg);
-        showToast(' Novo e-mail de confirmação enviado!', 'success');
+        showToast(msg, 'error');
         setAuthLoading(false);
         return;
       }
 
-      const { data: funcionarioAtivo } = await supabase
-        .from('funcionarios_ativos')
-        .select('ativo')
-        .eq('email', email.toLowerCase())
-        .maybeSingle();
+      // Sucesso no cadastro
+      showToast('✅ Cadastro realizado! Faça login.', 'success');
+      setEmail('');
+      setPassword('');    
 
-      if (!funcionarioAtivo || !funcionarioAtivo.ativo) {
-        await supabase.auth.signOut();
-        const msg = '❌ Seu e-mail não está autorizado. Contate o gestor para ser adicionado à lista.';
-        setAuthError(msg);
-        showToast(msg, 'error');
-      } else {
-        showToast('✅ Cadastro realizado! Verifique seu e-mail para confirmar a conta.', 'success');
-        setEmail('');
-        setPassword('');
-      }
     } else {
       const { error } = await supabase.auth.signInWithPassword({ 
         email: email.toLowerCase(), 
@@ -464,6 +462,19 @@ export default function App() {
         setAuthLoading(false);
         return;
       }
+
+      const verificarSeEhFuncionarioAtivo = async (email: string) => {
+        const { data, error } = await supabase
+          .from('funcionarios_ativos')
+          .select('ativo')
+          .eq('email', email.toLowerCase())
+          .maybeSingle();
+        
+        if (error || !data || !data.ativo) {
+          return false;
+        }
+        return true;
+      };
 
       const { data: funcionarioAtivo } = await supabase
         .from('funcionarios_ativos')
