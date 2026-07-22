@@ -410,6 +410,18 @@ export default function App() {
         return;
       }
       
+      // Validação de senha forte (apenas no cadastro)
+      if (isRegistering) {
+        const senhaForte = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+        if (!senhaForte.test(password)) {
+          const msg = '❌ A senha deve ter pelo menos 8 caracteres, incluindo:\n• 1 letra maiúscula\n• 1 letra minúscula\n• 1 número';
+          setAuthError(msg);
+          showToast('Senha fraca', 'error');
+          setAuthLoading(false);
+          return;
+        }
+      }
+
       if (isRegistering) {
         // PRIMEIRO: Verifica se está autorizado
         const { data: funcionarioAtivo, error: funcError } = await supabase
