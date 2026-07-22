@@ -273,6 +273,42 @@ export default function App() {
     }
   };
 
+  const deletarFuncionario = async (email: string) => {
+    if (!window.confirm(`Tem certeza que deseja DELETAR o usuário ${email}?\n\nEsta ação não pode ser desfeita e o usuário perderá o acesso ao sistema.`)) {
+      return;
+    }
+    
+    setSubmitLoading(true);
+    
+    // 1. Deletar da tabela funcionarios_ativos
+    const { error: errorTabela } = await supabase
+      .from('funcionarios_ativos')
+      .delete()
+      .eq('email', email);
+    
+    if (errorTabela) {
+      showToast('❌ Erro ao remover da lista: ' + errorTabela.message, 'error');
+      setSubmitLoading(false);
+      return;
+    }
+    
+    // 2. Deletar da autenticação do Supabase via função SQL
+    const { error: errorAuth } = await supabase.rpc('deletar_usuario_auth', { 
+      email_usuario: email 
+    });
+    
+    setSubmitLoading(false);
+    
+    if (errorAuth) {
+      // Se der erro na auth, avisa mas mantém a remoção da tabela
+      showToast('⚠️ Usuário removido da lista, mas houve um erro na autenticação: ' + errorAuth.message, 'warning');
+    } else {
+      showToast('✅ Usuário deletado com sucesso!', 'success');
+    }
+    
+    await carregarFuncionarios();
+  };
+
   const toggleSalaAtiva = async (salaId: number, statusAtual: boolean) => {
     const { error } = await supabase
       .from('salas')
@@ -1087,6 +1123,12 @@ export default function App() {
                             : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
                         }`}>
                         {f.ativo ? 'Desativar' : 'Reativar'}
+                      </button>
+                      <button onClick={() => deletarFuncionario(f.email)}
+                        className="px-4 py-2 rounded-lg font-medium text-sm transition bg-gray-100 text-gray-700 hover:bg-gray-200 flex items-center gap-1"
+                        title="Deletar usuário permanentemente"
+                      >
+                        <IconTrash /> Deletar
                       </button>
                     </div>
                   ))}
