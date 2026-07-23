@@ -549,7 +549,9 @@ export default function App() {
       showToast('️ O horário de término deve ser posterior ao horário de início.', 'warning');
       return;
     }
-    const hoje = new Date().toISOString().split('T')[0];
+    // Pega a data atual no fuso horário LOCAL do usuário (não UTC)
+    const agora = new Date();
+    const hoje = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}-${String(agora.getDate()).padStart(2, '0')}`;
     if (dataReserva < hoje) {
       showToast('⚠️ Não é possível reservar datas passadas.', 'warning');
       return;
@@ -1031,7 +1033,14 @@ export default function App() {
                 <label className="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-1.5">
                   <IconCalendar /> Data da Reunião
                 </label>
-                <input type="date" value={dataReserva} onChange={e => setDataReserva(e.target.value)}
+                <input 
+                  type="date" 
+                  value={dataReserva} 
+                  onChange={e => setDataReserva(e.target.value)} 
+                  min={`${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}-${String(agora.getDate()).padStart(2, '0')}`} 
+                  required 
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#E7BE92] outline-none" 
+                />
                   min={new Date().toISOString().split('T')[0]} required
                   className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#E7BE92] outline-none" />
               </div>
