@@ -163,6 +163,10 @@ export default function App() {
   const [horaFim, setHoraFim] = useState('');
   const [tipoReuniao, setTipoReuniao] = useState('Interna');
   const [qtdParticipantes, setQtdParticipantes] = useState('');
+  const [observacao, setObservacao] = useState('');
+  const [semObservacao, setSemObservacao] = useState(false);
+  const [editandoObsId, setEditandoObsId] = useState<number | null>(null);
+  const [novaObsEditada, setNovaObsEditada] = useState('');
   const [submitLoading, setSubmitLoading] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' } | null>(null);
 
@@ -562,6 +566,13 @@ export default function App() {
       showToast('️ Conflito de Horário! Esta sala já possui uma reserva para este período.', 'warning');
       return;
     }
+
+    // Validação da observação
+    if (!semObservacao && observacao.trim() === '') {
+      showToast('⚠️ Preencha a observação ou marque a caixa "Sem observações".', 'warning');
+      return;
+    }
+
     setSubmitLoading(true);
     const { error } = await supabase.from('reservas').insert([{
       usuario_email: user.email,
@@ -571,6 +582,7 @@ export default function App() {
       hora_fim: horaFim,
       tipo_reuniao: tipoReuniao,
       quantidade_participantes: qtd,
+      observacao: semObservacao ? 'Sem observações' : observacao,
       status: isGestor ? 'aprovada' : 'pendente'
     }]);
     setSubmitLoading(false);
@@ -926,6 +938,21 @@ export default function App() {
     );
   }
 
+  const salvarObservacaoGestor = async (id: number) => {
+    const { error } = await supabase
+      .from('reservas')
+      .update({ observacao: novaObsEditada })
+      .eq('id', id);
+    
+    if (error) {
+      showToast('❌ Erro ao salvar: ' + error.message, 'error');
+    } else {
+      showToast('✅ Observação atualizada!', 'success');
+      setEditandoObsId(null);
+      await carregarDados();
+    }
+  };
+
   const reservasAtivas = reservas.filter(r => r.status !== 'recusada');
   const reservasPendentes = reservas.filter(r => r.status === 'pendente');
   const reservasFiltradas = filtrarReservas(reservasAtivas);
@@ -1041,6 +1068,27 @@ export default function App() {
                   required min="1" placeholder="Ex: 4"
                   className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#E7BE92] outline-none" />
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Observações / Detalhes da Reunião</label>
+                <textarea 
+                  value={observacao} 
+                  onChange={e => { setObservacao(e.target.value); if(e.target.value.trim() !== '') setSemObservacao(false); }}
+                  disabled={semObservacao}
+                  rows={3}
+                  placeholder="Ex: Trazer projetor, coffee break, cliente externo..."
+                  className={`w-full px-4 py-2.5 border rounded-xl focus:ring-2 focus:ring-[#E7BE92] outline-none resize-none ${semObservacao ? 'bg-gray-100 text-gray-400' : 'border-gray-200'}`}
+                />
+                <label className="flex items-center gap-2 mt-2 cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    checked={semObservacao} 
+                    onChange={e => { setSemObservacao(e.target.checked); if(e.target.checked) setObservacao(''); }}
+                    className="w-4 h-4 text-[#263448] border-gray-300 rounded focus:ring-[#E7BE92]" 
+                  />
+                  <span className="text-sm text-gray-600">Declaro que não há observações para esta reserva.</span>
+                </label>
+              </div>
+          
               <button type="submit" disabled={submitLoading}
                 className="w-full bg-[#263448] text-white py-3 rounded-xl font-semibold hover:bg-[#1a2633] transition disabled:opacity-50 flex items-center justify-center gap-2">
                 <IconSend />
@@ -1122,7 +1170,42 @@ export default function App() {
                         </div>
                         <div className="text-xs text-gray-500 mt-1 flex items-center gap-1">
                           <IconUsers /> {r.usuario_email} • {r.quantidade_participantes} pessoas
-                        </div>
+                        </div>                    
+                        {r.observacao && r.observacao !== 'Sem observações' ? (
+                          <div className="text-xs text-gray-500 mt-2 flex items-start gap-1 bg-gray-50 p-2 rounded-lg border border-gray-100">
+                            <span className="font-semibold text-gray-600 min-w-[70px]">Obs:</span>
+                            {isGestor && editandoObsId === r.id ? (
+                              <div className="flex-1 flex gap-2">
+                                <input 
+                                  type="text" 
+                                  value={novaObsEditada} 
+                                  onChange={e => setNovaObsEditada(e.target.value)}
+                                  className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-[#E7BE92] outline-none"
+                                  autoFocus
+                                />
+                                <button onClick={() => salvarObservacaoGestor(r.id)} className="text-emerald-600 hover:text-emerald-700 font-bold text-xs">Salvar</button>
+                                <button onClick={() => setEditandoObsId(null)} className="text-red-600 hover:text-red-700 font-bold text-xs">X</button>
+                              </div>
+                            ) : (
+                              <div className="flex-1 flex justify-between items-start gap-2">
+                                <span className="break-words">{r.observacao}</span>
+                                {isGestor && (
+                                  <button 
+                                    onClick={() => { setEditandoObsId(r.id); setNovaObsEditada(r.observacao || ''); }}
+                                    className="text-[#633627] hover:text-[#633627]/80 text-xs font-semibold whitespace-nowrap"
+                                    title="Editar observação"
+                                  >
+                                    ✏️ Editar
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        ) : r.observacao === 'Sem observações' ? (
+                          <div className="text-xs text-gray-400 mt-2 italic bg-gray-50 px-2 py-1 rounded border border-gray-100 inline-block">
+                            Sem observações
+                          </div>
+                        ) : null}
                       </div>
                       <div className="flex items-center gap-2">
                         <span className={`px-3 py-1 text-xs font-bold rounded-full ${
