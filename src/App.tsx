@@ -146,6 +146,11 @@ function Toast({ message, type, onClose }: { message: string; type: 'success' | 
 
 // ============ APP ============
 export default function App() {
+  // Data atual no fuso horário LOCAL (usada no formulário e na validação)
+  const agoraLocal = new Date();
+  const hojeLocal = `${agoraLocal.getFullYear()}-${String(agoraLocal.getMonth() + 1).padStart(2, '0')}-${String(agoraLocal.getDate()).padStart(2, '0')}`;
+
+  // ... (seus useState continuam aqui)
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [email, setEmail] = useState('');
@@ -550,9 +555,7 @@ export default function App() {
       return;
     }
     // Pega a data atual no fuso horário LOCAL do usuário (não UTC)
-    const agora = new Date();
-    const hoje = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}-${String(agora.getDate()).padStart(2, '0')}`;
-    if (dataReserva < hoje) {
+    if (dataReserva < hojeLocal) {
       showToast('⚠️ Não é possível reservar datas passadas.', 'warning');
       return;
     }
@@ -1034,7 +1037,7 @@ export default function App() {
                   <IconCalendar /> Data da Reunião
                 </label>
                 <input 
-                  type="date" value={dataReserva} onChange={e => setDataReserva(e.target.value)} min={`${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}-${String(agora.getDate()).padStart(2, '0')}`} required 
+                  type="date" value={dataReserva} onChange={e => setDataReserva(e.target.value)} min={hojeLocal} required 
                   className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#E7BE92] outline-none" />                
               </div>
               <div className="grid grid-cols-2 gap-3">
