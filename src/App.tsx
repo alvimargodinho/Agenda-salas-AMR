@@ -1034,13 +1034,8 @@ export default function App() {
                   <IconCalendar /> Data da Reunião
                 </label>
                 <input 
-                  type="date" 
-                  value={dataReserva} 
-                  onChange={e => setDataReserva(e.target.value)} 
-                  min={`${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}-${String(agora.getDate()).padStart(2, '0')}`} 
-                  required 
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#E7BE92] outline-none" 
-                />                
+                  type="date" value={dataReserva} onChange={e => setDataReserva(e.target.value)} min={`${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}-${String(agora.getDate()).padStart(2, '0')}`} required 
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#E7BE92] outline-none" />                
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
