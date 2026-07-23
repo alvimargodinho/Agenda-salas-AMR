@@ -1,9 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 
+
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+const [showResetPasswordForm, setShowResetPasswordForm] = useState(false);
+const [newPassword, setNewPassword] = useState('');
+const [confirmPassword, setConfirmPassword] = useState('');
+const [resetPasswordLoading, setResetPasswordLoading] = useState(false);
 
 // ============ ÍCONES ============
 const IconBuilding = () => (
@@ -125,6 +131,23 @@ const IconLogoAMR = ({ size = 'normal' }: { size?: 'normal' | 'small' }) => {
 // ============ TOAST ============
 function Toast({ message, type, onClose }: { message: string; type: 'success' | 'error' | 'warning'; onClose: () => void }) {
   useEffect(() => {
+    // Verifica se veio do link de recuperação de senha
+    const hash = window.location.hash;
+    if (hash.includes('type=recovery') || hash.includes('access_token')) {
+      setShowResetPasswordForm(true);
+    }
+    
+    const init = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        await checkGestor(session.user.email);
+        await carregarDados();
+      }
+      setLoading(false);
+    };
+    init();
+    
     const timer = setTimeout(onClose, 4000);
     return () => clearTimeout(timer);
   }, [onClose]);
@@ -604,12 +627,106 @@ export default function App() {
     });
   };
 
+  const handleUpdatePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setResetPasswordLoading(true);
+    
+    // Validação de senha forte
+    const senhaForte = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+    if (!senhaForte.test(newPassword)) {
+      showToast(' A senha deve ter pelo menos 8 caracteres, incluindo:\n• 1 letra maiúscula\n• 1 letra minúscula\n• 1 número', 'error');
+      setResetPasswordLoading(false);
+      return;
+    }
+    
+    if (newPassword !== confirmPassword) {
+      showToast('❌ As senhas não coincidem', 'error');
+      setResetPasswordLoading(false);
+      return;
+    }
+    
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    
+    setResetPasswordLoading(false);
+    
+    if (error) {
+      showToast('❌ Erro ao atualizar senha: ' + error.message, 'error');
+    } else {
+      showToast('✅ Senha atualizada com sucesso! Faça login.', 'success');
+      setShowResetPasswordForm(false);
+      setNewPassword('');
+      setConfirmPassword('');
+      await supabase.auth.signOut();
+      window.location.hash = ''; // Limpa a URL
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #263448 0%, #1a2633 100%)' }}>
         <div className="flex flex-col items-center gap-3">
           <div className="w-12 h-12 border-4 border-[#E7BE92] border-t-transparent rounded-full animate-spin" />
           <p className="text-white text-sm font-medium">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (showResetPasswordForm) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50" style={{ fontFamily: 'Inter, sans-serif' }}>
+        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full">
+          <div className="flex items-center justify-center mb-6">
+            <div className="bg-[#263448] rounded-xl p-3">
+              <IconLogoAMR size="small" />
+            </div>
+          </div>
+          <h2 className="text-2xl font-bold text-[#263448] text-center mb-1" style={{ fontFamily: 'Georgia, serif' }}>
+            Redefinir Senha
+          </h2>
+          <p className="text-sm text-gray-500 text-center mb-6">
+            Digite sua nova senha
+          </p>
+          
+          <form onSubmit={handleUpdatePassword} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Nova Senha</label>
+              <input 
+                type="password" 
+                value={newPassword} 
+                onChange={e => setNewPassword(e.target.value)} 
+                required
+                placeholder="Mínimo 8 caracteres"
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#E7BE92] outline-none" 
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Confirmar Senha</label>
+              <input 
+                type="password" 
+                value={confirmPassword} 
+                onChange={e => setConfirmPassword(e.target.value)} 
+                required
+                placeholder="Digite novamente"
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#E7BE92] outline-none" 
+              />
+            </div>
+            
+            <button 
+              type="submit" 
+              disabled={resetPasswordLoading}
+              className="w-full bg-[#263448] text-white py-2.5 rounded-xl font-semibold hover:bg-[#1a2633] transition disabled:opacity-50"
+            >
+              {resetPasswordLoading ? 'Atualizando...' : 'Atualizar Senha'}
+            </button>
+          </form>
+          
+          <button 
+            onClick={() => { setShowResetPasswordForm(false); window.location.hash = ''; }}
+            className="w-full mt-3 text-sm text-gray-500 hover:text-gray-700 transition text-center"
+          >
+            Cancelar
+          </button>
         </div>
       </div>
     );
