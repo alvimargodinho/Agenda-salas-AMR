@@ -558,6 +558,16 @@ export default function App() {
     if (dataReserva < hojeLocal) {
       showToast('⚠️ Não é possível reservar datas passadas.', 'warning');
       return;
+    // Validação de horário passado para o dia de hoje
+    if (dataReserva === hojeLocal) {
+      const agora = new Date();
+      const horaAtual = `${String(agora.getHours()).padStart(2, '0')}:${String(agora.getMinutes()).padStart(2, '0')}`;    
+      
+      if (horaInicio <= horaAtual) {
+        showToast('⚠️ Não é possível reservar um horário que já passou no dia de hoje.', 'warning');
+        return;
+      }
+    }
     }
     const conflito = reservas.some(r =>
       (r.status === 'aprovada' || r.status === 'pendente') &&
