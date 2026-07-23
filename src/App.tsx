@@ -1,14 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 
+
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-const [showResetPasswordForm, setShowResetPasswordForm] = useState(false);
-const [newPassword, setNewPassword] = useState('');
-const [confirmPassword, setConfirmPassword] = useState('');
-const [resetPasswordLoading, setResetPasswordLoading] = useState(false);
 
 // ============ ÍCONES ============
 const IconBuilding = () => (
@@ -201,6 +197,11 @@ export default function App() {
   const [resetEmail, setResetEmail] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
   const [resetMessage, setResetMessage] = useState('');
+
+  const [showResetPasswordForm, setShowResetPasswordForm] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [resetPasswordLoading, setResetPasswordLoading] = useState(false);
 
   const DOMINIO_PERMITIDO = '@amradvogados.com.br';
 
