@@ -126,23 +126,6 @@ const IconLogoAMR = ({ size = 'normal' }: { size?: 'normal' | 'small' }) => {
 // ============ TOAST ============
 function Toast({ message, type, onClose }: { message: string; type: 'success' | 'error' | 'warning'; onClose: () => void }) {
   useEffect(() => {
-    // Verifica se veio do link de recuperação de senha
-    const hash = window.location.hash;
-    if (hash.includes('type=recovery') || hash.includes('access_token')) {
-      setShowResetPasswordForm(true);
-    }
-    
-    const init = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        await checkGestor(session.user.email);
-        await carregarDados();
-      }
-      setLoading(false);
-    };
-    init();
-    
     const timer = setTimeout(onClose, 4000);
     return () => clearTimeout(timer);
   }, [onClose]);
@@ -210,16 +193,26 @@ export default function App() {
   };
 
   useEffect(() => {
-    const init = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        await checkGestor(session.user.email);
-        await carregarDados();
+      // 1. VERIFICA PRIMEIRO se veio do link de recuperação de senha
+      const hash = window.location.hash;
+      if (hash.includes('type=recovery') || hash.includes('access_token')) {
+        setShowResetPasswordForm(true);
+        setLoading(false); // Para a tela de carregamento
+        return; // PARA TUDO AQUI e não faz login automático
       }
-      setLoading(false);
-    };
-    init();
+  
+      // 2. Se NÃO for recuperação, faz o fluxo normal de login
+      const init = async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        setUser(session?.user ?? null);
+        if (session?.user) {
+          await checkGestor(session.user.email);
+          await carregarDados();
+        }
+        setLoading(false);
+      };
+      init();
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       setUser(session?.user ?? null);
       if (session?.user) {
