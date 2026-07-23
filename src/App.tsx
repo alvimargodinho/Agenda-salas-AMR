@@ -1080,7 +1080,7 @@ export default function App() {
                   onChange={e => { setObservacao(e.target.value); if(e.target.value.trim() !== '') setSemObservacao(false); }}
                   disabled={semObservacao}
                   rows={3}
-                  placeholder="Ex: Trazer projetor, coffee break, cliente externo..."
+                  placeholder="Ex: Nome do Cliente ou Empresa"
                   className={`w-full px-4 py-2.5 border rounded-xl focus:ring-2 focus:ring-[#E7BE92] outline-none resize-none ${semObservacao ? 'bg-gray-100 text-gray-400' : 'border-gray-200'}`}
                 />
                 <label className="flex items-center gap-2 mt-2 cursor-pointer">
@@ -1090,7 +1090,7 @@ export default function App() {
                     onChange={e => { setSemObservacao(e.target.checked); if(e.target.checked) setObservacao(''); }}
                     className="w-4 h-4 text-[#263448] border-gray-300 rounded focus:ring-[#E7BE92]" 
                   />
-                  <span className="text-sm text-gray-600">Declaro que não há observações para esta reserva.</span>
+                  <span className="text-sm text-gray-600">Sem observações para esta reserva.</span>
                 </label>
               </div>
           
