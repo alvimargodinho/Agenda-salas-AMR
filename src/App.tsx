@@ -407,6 +407,7 @@ export default function App() {
         const msg = `❌ Apenas e-mails corporativos são permitidos.\n\nSeu e-mail deve terminar com: ${DOMINIO_PERMITIDO}`;
         setAuthError(msg);
         showToast(msg, 'error');
+        setAuthLoading(false);
         return;
       }
       
@@ -421,38 +422,37 @@ export default function App() {
           return;
         }
       }
-
+      
       if (isRegistering) {
-        // PRIMEIRO: Verifica se está autorizado
-        const { data: funcionarioAtivo, error: funcError } = await supabase
+        // CADASTRO
+        
+        // 1. Verifica se está autorizado
+        const { data: funcionarioAtivo } = await supabase
           .from('funcionarios_ativos')
           .select('ativo')
           .eq('email', email.toLowerCase())
           .maybeSingle();
         
-        if (funcError || !funcionarioAtivo || !funcionarioAtivo.ativo) {
-          setAuthError('❌ Seu e-mail não está autorizado. Contate o gestor para ser adicionado à lista.');
-          showToast('❌ E-mail não autorizado', 'error');
+        if (!funcionarioAtivo || !funcionarioAtivo.ativo) {
+          setAuthError('❌ Seu e-mail não está autorizado. Contate o gestor.');
+          showToast('E-mail não autorizado', 'error');
           setAuthLoading(false);
           return;
         }
         
-        // SEGUNDO: Tenta criar diretamente
-        const { data, error } = await supabase.auth.signUp({ 
+        // 2. Tenta criar a conta
+        const { error } = await supabase.auth.signUp({ 
           email: email.toLowerCase(), 
           password 
         });
         
         if (error) {
-          // Se for erro de "já existe", mostra mensagem amigável
-          if (error.message.includes('already registered') || error.message.includes('User already registered')) {
-            setAuthError('⚠️ Este e-mail já está cadastrado. Tente fazer login ou recupere sua senha.');
-            showToast('E-mail já cadastrado', 'warning');
+          if (error.message.includes('already registered')) {
+            setAuthError('⚠️ Este e-mail já está cadastrado. Tente fazer login.');
           } else {
-            const msg = traduzirErro(error.message);
-            setAuthError(msg);
-            showToast(msg, 'error');
+            setAuthError('❌ Erro: ' + error.message);
           }
+          showToast('Erro no cadastro', 'error');
           setAuthLoading(false);
           return;
         }
@@ -462,18 +462,51 @@ export default function App() {
         setEmail('');
         setPassword('');
         setIsRegistering(false);
+        setAuthLoading(false);
+        
+      } else {
+        // LOGIN
+        
+        const { error } = await supabase.auth.signInWithPassword({ 
+          email: email.toLowerCase(), 
+          password 
+        });
+        
+        if (error) {
+          const msg = traduzirErro(error.message);
+          setAuthError(msg);
+          showToast(msg, 'error');
+          setAuthLoading(false);
+          return;
+        }
+        
+        // Verifica se ainda está ativo
+        const { data: funcionarioAtivo } = await supabase
+          .from('funcionarios_ativos')
+          .select('ativo')
+          .eq('email', email.toLowerCase())
+          .maybeSingle();
+        
+        if (!funcionarioAtivo || !funcionarioAtivo.ativo) {
+          await supabase.auth.signOut();
+          setAuthError('❌ Sua conta foi desativada. Contate o gestor.');
+          showToast('Conta desativada', 'error');
+          setAuthLoading(false);
+          return;
+        }
+        
+        // Login bem-sucedido!
+        setAuthLoading(false);
       }
-
+      
     } catch (err: any) {
-      const msg = traduzirErro(err.message);
-      setAuthError(msg);
-      showToast(msg, 'error');
-    } finally {
-      // GARANTE que sempre vai resetar o loading
+      console.error('Erro inesperado:', err);
+      setAuthError('❌ Erro inesperado: ' + err.message);
+      showToast('Erro inesperado', 'error');
       setAuthLoading(false);
     }
   };
-  
+
   const handleNovaReserva = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedSala || !dataReserva || !horaInicio || !horaFim || !qtdParticipantes) {
