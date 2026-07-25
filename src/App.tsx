@@ -558,17 +558,23 @@ export default function App() {
     if (dataReserva < hojeLocal) {
       showToast('⚠️ Não é possível reservar datas passadas.', 'warning');
       return;
+    }
+
     // Validação de horário passado para o dia de hoje
     if (dataReserva === hojeLocal) {
       const agora = new Date();
-      const horaAtual = `${String(agora.getHours()).padStart(2, '0')}:${String(agora.getMinutes()).padStart(2, '0')}`;    
+      // Pega a hora atual e corta para ter apenas "HH:MM" (ex: "22:51")
+      const horaAtual = agora.toTimeString().substring(0, 5); 
       
-      if (horaInicio <= horaAtual) {
-        showToast('⚠️ Não é possível reservar um horário que já passou no dia de hoje.', 'warning');
+      // Garante que o horário escolhido também esteja apenas em "HH:MM"
+      const horaInicioLimpa = horaInicio.substring(0, 5); 
+
+      if (horaInicioLimpa <= horaAtual) {
+        showToast('️ Não é possível reservar um horário que já passou no dia de hoje.', 'warning');
         return;
       }
     }
-    }
+    
     const conflito = reservas.some(r =>
       (r.status === 'aprovada' || r.status === 'pendente') &&
       r.sala_id === salaEscolhida.id &&
