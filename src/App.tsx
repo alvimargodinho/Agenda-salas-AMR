@@ -252,7 +252,7 @@ export default function App() {
     if (dataSalas) {
       setSalas(dataSalas.filter((s: any) => s.ativo));
       setTodasSalas(dataSalas);
-      if (dataSalas.length > 0 && !selectedSala) setSelectedSala(dataSalas[0].id);
+ //     if (dataSalas.length > 0 && !selectedSala) setSelectedSala(dataSalas[0].id);
     }
     if (dataReservas) setReservas(dataReservas);
   };
@@ -534,7 +534,13 @@ export default function App() {
 
   const handleNovaReserva = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedSala || !dataReserva || !horaInicio || !horaFim || !qtdParticipantes) {
+    // Validação específica da sala
+    if (!selectedSala) {
+      showToast('⚠️ Por favor, selecione uma sala para a reserva.', 'warning');
+      return;
+    }
+    // Validação dos demais campos
+    if (!dataReserva || !horaInicio || !horaFim || !qtdParticipantes) {
       showToast('⚠️ Preencha todos os campos.', 'warning');
       return;
     }
@@ -806,7 +812,7 @@ export default function App() {
             © 2026 AMR Advogados • Abegg, Macorim & Rotta
           </div>
           <div className="relative z-10 text-sm text-white/50">
-            Desenvolvido por Alvimar Godinho & IA
+            Desenvolvido por IA e Alvimar Godinho
           </div>
         </div>
 
@@ -1042,11 +1048,12 @@ export default function App() {
             </h2>
             <form onSubmit={handleNovaReserva} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Escolha a Sala</label>
-                <select value={selectedSala} onChange={e => setSelectedSala(e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#E7BE92] outline-none bg-white">
-                  {salas.map(s => <option key={s.id} value={s.id}>{s.nome} (Máx: {s.capacidade_maxima} pessoas)</option>)}
-                </select>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Escolha a Sala</label>
+              <select value={selectedSala} onChange={e => setSelectedSala(e.target.value)} 
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#E7BE92] outline-none bg-white">
+                <option value="" disabled>Selecione uma sala...</option>
+                {salas.map(s => <option key={s.id} value={s.id}>{s.nome} (Máx: {s.capacidade_maxima} pessoas)</option>)}
+              </select>
               </div>
               <div>
                 <label className="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-1.5">
