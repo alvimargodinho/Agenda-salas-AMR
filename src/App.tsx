@@ -811,8 +811,9 @@ export default function App() {
           <div className="relative z-10 text-sm text-white/150">
             © 2026 AMR Advogados • Abegg, Macorim & Rotta
           </div>
-          <div className="relative z-10 text-sm text-white/50">
-            Desenvolvido por IA e Alvimar Godinho (2026.07.29.V04)
+          <div className="relative z-10 text-sm text-white/50 flex items-center gap-1.5 flex-wrap">
+            <span>Desenvolvido por IA e Alvimar Godinho</span>
+            <span className="text-[10px] text-white/30">(2026.07.29.v05)</span>
           </div>
         </div>
 
