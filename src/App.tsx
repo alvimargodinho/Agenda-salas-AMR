@@ -812,7 +812,7 @@ export default function App() {
             © 2026 AMR Advogados • Abegg, Macorim & Rotta
           </div>
           <div className="relative z-10 text-sm text-white/50">
-            Desenvolvido por IA e Alvimar Godinho
+            Desenvolvido por IA e Alvimar Godinho (2026.07.29.V04)
           </div>
         </div>
 
