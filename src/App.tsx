@@ -995,52 +995,60 @@ export default function App() {
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       
       <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div 
-              className="rounded-xl p-2 flex items-center justify-center"
-              style={{ 
-                background: 'linear-gradient(135deg, #263448 0%, #1a2633 100%)'
-              }}
-            >
-              <div className="text-white font-bold text-lg tracking-tighter" style={{ fontFamily: 'Georgia, serif' }}>
-                AMR
-              </div>
-            </div>
-            <div>
-              <h1 className="font-bold text-[#263448]" style={{ fontFamily: 'Georgia, serif' }}>AgendaSalas</h1>
-              <p className="text-xs text-gray-500">{user.email}</p>
+      <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
+        {/* LADO ESQUERDO: Logo + Nome + Versão */}
+        <div className="flex items-center gap-3">
+          <div 
+            className="rounded-xl p-2 flex items-center justify-center"
+            style={{ 
+              background: 'linear-gradient(135deg, #263448 0%, #1a2633 100%)'
+            }}
+          >
+            <div className="text-white font-bold text-lg tracking-tighter" style={{ fontFamily: 'Georgia, serif' }}>
+              AMR
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            {isGestor && (
-              <>
-                <span className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-purple-100 text-purple-700 rounded-full text-xs font-semibold">
-                  <IconShield /> Gestor
-                </span>
-                <button 
-                  onClick={() => { setShowRoomManagement(true); }}
-                  className="flex items-center gap-2 px-4 py-2 text-[#263448] hover:bg-[#263448]/10 rounded-xl transition text-sm font-medium border border-[#263448]/20"
-                >
-                  <IconBuilding /> Gerenciar Salas
-                </button>
-                <button 
-                  onClick={() => { setShowUserManagement(true); carregarFuncionarios(); }}
-                  className="flex items-center gap-2 px-4 py-2 text-[#633627] hover:bg-[#633627]/10 rounded-xl transition text-sm font-medium border border-[#633627]/20"
-                >
-                  <IconUsers /> Gerenciar Usuários
-                </button>
-              </>
-            )}
-            <button 
-              onClick={() => supabase.auth.signOut()}
-              className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-xl transition text-sm font-medium"
-            >
-              <IconLogOut /> Sair
-            </button>
+          <div>
+            <h1 className="font-bold text-[#263448]" style={{ fontFamily: 'Georgia, serif' }}>AgendaSalas</h1>
+            <p className="text-[9px] text-gray-400">v2026.07.29.05 • Por Alvimar Godinho & IA</p>
           </div>
         </div>
-      </header>
+        
+        {/* LADO DIREITO: E-mail + Botões */}
+        <div className="flex items-center gap-4">
+          {/* E-mail do usuário (discreto, antes dos botões) */}
+          <div className="text-right hidden sm:block">
+            <p className="text-xs text-gray-500">{user.email}</p>
+          </div>
+          
+          {isGestor && (
+            <>
+              <span className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-purple-100 text-purple-700 rounded-full text-xs font-semibold">
+                <IconShield /> Gestor
+              </span>
+              <button 
+                onClick={() => { setShowRoomManagement(true); }}
+                className="flex items-center gap-2 px-4 py-2 text-[#263448] hover:bg-[#263448]/10 rounded-xl transition text-sm font-medium border border-[#263448]/20"
+              >
+                <IconBuilding /> Gerenciar Salas
+              </button>
+              <button 
+                onClick={() => { setShowUserManagement(true); carregarFuncionarios(); }}
+                className="flex items-center gap-2 px-4 py-2 text-[#633627] hover:bg-[#633627]/10 rounded-xl transition text-sm font-medium border border-[#633627]/20"
+              >
+                <IconUsers /> Gerenciar Usuários
+              </button>
+            </>
+          )}
+          <button 
+            onClick={() => supabase.auth.signOut()}
+            className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-xl transition text-sm font-medium"
+          >
+            <IconLogOut /> Sair
+          </button>
+        </div>
+      </div>
+    </header>
 
       <div className="max-w-7xl mx-auto px-6 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
