@@ -175,7 +175,9 @@ export default function App() {
   const [submitLoading, setSubmitLoading] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' } | null>(null);
 
-  const [filtroData, setFiltroData] = useState(new Date().toISOString().split('T')[0]);
+ // const [filtroData, setFiltroData] = useState(new Date().toISOString().split('T')[0]);
+  const [filtroDataInicio, setFiltroDataInicio] = useState(new Date().toISOString().split('T')[0]);
+  const [filtroDataFim, setFiltroDataFim] = useState(new Date().toISOString().split('T')[0]);
   const [filtroSala, setFiltroSala] = useState('');
   const [filtroStatus, setFiltroStatus] = useState('todas');
 
@@ -649,7 +651,10 @@ export default function App() {
 
   const filtrarReservas = (reservasLista: any[]) => {
     return reservasLista.filter(r => {
-      if (filtroData && r.data_reserva !== filtroData) return false;
+      // Filtrar por período de datas
+      if (filtroDataInicio && r.data_reserva < filtroDataInicio) return false;
+      if (filtroDataFim && r.data_reserva > filtroDataFim) return false;
+      
       if (filtroSala && r.sala_id !== parseInt(filtroSala)) return false;
       if (isGestor && filtroStatus !== 'todas') {
         if (filtroStatus === 'aprovadas' && r.status !== 'aprovada') return false;
@@ -1134,10 +1139,16 @@ export default function App() {
                 </div>
                 Filtros de Visualização
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Data</label>
-                  <input type="date" value={filtroData} onChange={e => setFiltroData(e.target.value)}
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Data Inicial</label>
+                  <input type="date" value={filtroDataInicio} onChange={e => setFiltroDataInicio(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#E7BE92] outline-none text-sm" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Data Final</label>
+                  <input type="date" value={filtroDataFim} onChange={e => setFiltroDataFim(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#E7BE92] outline-none text-sm" />
                 </div>
                 <div>
@@ -1159,13 +1170,20 @@ export default function App() {
                     </select>
                   </div>
                 )}
-              </div>
-              {(filtroData || filtroSala || (isGestor && filtroStatus !== 'todas')) && (
-                <button onClick={() => { setFiltroData(new Date().toISOString().split('T')[0]); setFiltroSala(''); setFiltroStatus('todas'); }}
+              </div>              
+
+              {(filtroDataInicio !== new Date().toISOString().split('T')[0] || filtroDataFim !== new Date().toISOString().split('T')[0] || filtroSala || (isGestor && filtroStatus !== 'todas')) && (
+                <button onClick={() => { 
+                  setFiltroDataInicio(new Date().toISOString().split('T')[0]); 
+                  setFiltroDataFim(new Date().toISOString().split('T')[0]); 
+                  setFiltroSala(''); 
+                  setFiltroStatus('todas'); 
+                }}
                   className="mt-3 text-xs text-[#633627] hover:text-[#633627]/80 font-medium">
                   Limpar filtros
                 </button>
               )}
+              
             </div>
 
             <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
