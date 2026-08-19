@@ -301,7 +301,7 @@ export default function App() {
   };
 
   const deletarFuncionario = async (email: string) => {
-    if (!window.confirm(`Tem certeza que deseja DELETAR o usuário ${email}?\n\nEsta ação não pode ser desfeita e o usuário perderá o acesso ao sistema.`)) {
+    if (!window.confirm(`Tem certeza que deseja DELETAR o usuário ${email}?\n\nEsta ação não pode ser desfeita.`)) {
       return;
     }
     
@@ -319,23 +319,26 @@ export default function App() {
       return;
     }
     
-    // 2. Deletar da autenticação do Supabase via função SQL
-    const { error: errorAuth } = await supabase.rpc('deletar_usuario_auth', { 
+    // 2. Tentar deletar da autenticação (função retorna JSON)
+    const { data: authResult, error: errorAuth } = await supabase.rpc('deletar_usuario_auth', { 
       email_usuario: email 
     });
     
     setSubmitLoading(false);
     
+    // Mostra resultado
     if (errorAuth) {
-      // Se der erro na auth, avisa mas mantém a remoção da tabela
-      showToast('⚠️ Usuário removido da lista, mas houve um erro na autenticação: ' + errorAuth.message, 'warning');
+      showToast('️ Usuário removido da lista, mas erro na autenticação: ' + errorAuth.message, 'warning');
+    } else if (authResult && !authResult.success) {
+      // Função retornou erro (ex: usuário não existe ou tem reservas)
+      showToast(`ℹ️ ${authResult.message}`, 'warning');
     } else {
       showToast('✅ Usuário deletado com sucesso!', 'success');
     }
     
     await carregarFuncionarios();
   };
-
+  
   const toggleSalaAtiva = async (salaId: number, statusAtual: boolean) => {
     const { error } = await supabase
       .from('salas')
