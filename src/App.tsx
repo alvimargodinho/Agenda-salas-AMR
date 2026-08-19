@@ -196,6 +196,8 @@ export default function App() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [resetPasswordLoading, setResetPasswordLoading] = useState(false);
+  const [novoFuncionarioNome, setNovoFuncionarioNome] = useState('');
+  const [nomeUsuarioLogado, setNomeUsuarioLogado] = useState('');
 
   const DOMINIO_PERMITIDO = '@amradvogados.com.br';
 
@@ -218,21 +220,42 @@ export default function App() {
         setUser(session?.user ?? null);
         if (session?.user) {
           await checkGestor(session.user.email);
+          
+          // Buscar o nome do usuário logado na tabela de funcionários
+          const { data: funcData } = await supabase
+            .from('funcionarios_ativos')
+            .select('nome')
+            .eq('email', session.user.email)
+            .maybeSingle();
+          
+          // Se tiver nome, usa ele. Se não, usa a parte do e-mail antes do @
+          setNomeUsuarioLogado(funcData?.nome || session.user.email.split('@')[0]);
+          
           await carregarDados();
         }
         setLoading(false);
       };
       init();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        await checkGestor(session.user.email);
-        await carregarDados();
-      } else {
-        setIsGestor(false);
-      }
-    });
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+        setUser(session?.user ?? null);
+        if (session?.user) {
+          await checkGestor(session.user.email);
+          
+          const { data: funcData } = await supabase
+            .from('funcionarios_ativos')
+            .select('nome')
+            .eq('email', session.user.email)
+            .maybeSingle();
+          
+          setNomeUsuarioLogado(funcData?.nome || session.user.email.split('@')[0]);
+          await carregarDados();
+        } else {
+          setIsGestor(false);
+          setNomeUsuarioLogado('');
+        }
+      });
+
     return () => subscription.unsubscribe();
   }, []);
 
@@ -273,15 +296,25 @@ export default function App() {
       showToast('❌ Use apenas e-mails corporativos.', 'error');
       return;
     }
+    if (!novoFuncionarioNome.trim()) {
+      showToast('❌ Informe o nome do funcionário.', 'error');
+      return;
+    }
+    
     const { error } = await supabase
       .from('funcionarios_ativos')
-      .upsert({ email: novoFuncionarioEmail.toLowerCase(), ativo: true });
-    
+      .upsert({ 
+        email: novoFuncionarioEmail.toLowerCase(), 
+        nome: novoFuncionarioNome.trim(),
+        ativo: true 
+      });
+      
     if (error) {
       showToast('❌ Erro: ' + error.message, 'error');
     } else {
       showToast('✅ Funcionário adicionado com sucesso!', 'success');
       setNovoFuncionarioEmail('');
+      setNovoFuncionarioNome(''); // Limpa o campo de nome
       await carregarFuncionarios();
     }
   };
@@ -338,7 +371,7 @@ export default function App() {
     
     await carregarFuncionarios();
   };
-  
+
   const toggleSalaAtiva = async (salaId: number, statusAtual: boolean) => {
     const { error } = await supabase
       .from('salas')
@@ -989,7 +1022,16 @@ export default function App() {
     }
   };
 
-  const reservasAtivas = reservas.filter(r => r.status !== 'recusada');
+  // Cria um mapa rápido para converter e-mail em nome nas listas
+  const emailParaNome = React.useMemo(() => {
+    const map: Record<string, string> = {};
+    funcionariosAtivos.forEach((f: any) => {
+      if (f.nome) map[f.email] = f.nome;
+    });
+    return map;
+  }, [funcionariosAtivos]);
+
+   const reservasAtivas = reservas.filter(r => r.status !== 'recusada');
   const reservasPendentes = reservas.filter(r => r.status === 'pendente');
   const reservasFiltradas = filtrarReservas(reservasAtivas);
 
@@ -1021,7 +1063,7 @@ export default function App() {
         <div className="flex items-center gap-4">
           {/* E-mail do usuário (discreto, antes dos botões) */}
           <div className="text-right hidden sm:block">
-            <p className="text-xs text-gray-500">{user.email}</p>
+          <p className="text-xs text-gray-500">{nomeUsuarioLogado || user.email}</p>
           </div>
           
           {isGestor && (
@@ -1227,8 +1269,8 @@ export default function App() {
                           <span className="flex items-center gap-1"><IconClock /> {r.hora_inicio.substring(0,5)} - {r.hora_fim.substring(0,5)}</span>
                         </div>
                         <div className="text-xs text-gray-500 mt-1 flex items-center gap-1">
-                          <IconUsers /> {r.usuario_email} • {r.quantidade_participantes} pessoas
-                        </div>                    
+                          <IconUsers /> {emailParaNome[r.usuario_email] || r.usuario_email} • {r.quantidade_participantes} pessoas
+                        </div>
                         {r.observacao && r.observacao !== 'Sem observações' ? (
                           <div className="text-xs text-gray-500 mt-2 flex items-start gap-1 bg-gray-50 p-2 rounded-lg border border-gray-100">
                             <span className="font-semibold text-gray-600 min-w-[70px]">Obs:</span>
@@ -1312,7 +1354,7 @@ export default function App() {
                         <div className="flex items-start justify-between mb-3">
                           <div>
                             <div className="font-bold text-gray-800">{r.salas?.nome}</div>
-                            <div className="text-xs text-gray-500">{r.usuario_email}</div>
+                            <div className="text-xs text-gray-500">{emailParaNome[r.usuario_email] || r.usuario_email}</div>
                           </div>
                           <span className="text-xs font-bold px-2 py-1 bg-amber-200 text-amber-800 rounded-full">Aguardando</span>
                         </div>
@@ -1384,12 +1426,25 @@ export default function App() {
             </div>
             
             <div className="p-6 border-b border-gray-200 bg-gray-50">
-              <form onSubmit={adicionarFuncionario} className="flex gap-2">
-                <input type="email" value={novoFuncionarioEmail} onChange={e => setNovoFuncionarioEmail(e.target.value)}
-                  placeholder={`novo.funcionario${DOMINIO_PERMITIDO}`} required
-                  className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#E7BE92] outline-none" />
+              <form onSubmit={adicionarFuncionario} className="flex flex-col sm:flex-row gap-2">
+                <input 
+                  type="text" 
+                  value={novoFuncionarioNome} 
+                  onChange={e => setNovoFuncionarioNome(e.target.value)}
+                  placeholder="Nome completo do funcionário" 
+                  required
+                  className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#E7BE92] outline-none" 
+                />
+                <input 
+                  type="email" 
+                  value={novoFuncionarioEmail} 
+                  onChange={e => setNovoFuncionarioEmail(e.target.value)}
+                  placeholder={`e-mail${DOMINIO_PERMITIDO}`} 
+                  required
+                  className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#E7BE92] outline-none" 
+                />
                 <button type="submit"
-                  className="bg-[#263448] text-white px-6 py-2.5 rounded-xl font-semibold hover:bg-[#1a2633] transition">
+                  className="bg-[#263448] text-white px-6 py-2.5 rounded-xl font-semibold hover:bg-[#1a2633] transition whitespace-nowrap">
                   Adicionar
                 </button>
               </form>
@@ -1411,9 +1466,9 @@ export default function App() {
                           {f.email.charAt(0).toUpperCase()}
                         </div>
                         <div>
-                          <div className="font-medium text-gray-800">{f.email}</div>
+                          <div className="font-medium text-gray-800">{f.nome || f.email}</div>
                           <div className="text-xs text-gray-500">
-                            {f.ativo ? '✅ Ativo' : '🚫 Desativado'} • Desde {new Date(f.criado_em).toLocaleDateString('pt-BR')}
+                            {f.email} • {f.ativo ? '✅ Ativo' : '🚫 Desativado'}
                           </div>
                         </div>
                       </div>
