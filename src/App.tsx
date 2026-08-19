@@ -818,7 +818,7 @@ export default function App() {
           </div>
           <div className="relative z-10 text-sm text-white/50 flex items-center gap-1.5 flex-wrap">
             <span>© Desenvolvido por IA e Alvimar Godinho</span>
-            <span className="text-[10px] text-white/30">(2026.07.29.v05)</span>
+            <span className="text-[10px] text-white/30">(2026.08.18.v06)</span>
           </div>
         </div>
 
@@ -1010,7 +1010,7 @@ export default function App() {
           </div>
           <div>
             <h1 className="font-bold text-[#263448]" style={{ fontFamily: 'Georgia, serif' }}>AgendaSalas</h1>
-            <p className="text-[9px] text-gray-400">v2026.07.29.05 • Por Alvimar Godinho & IA</p>
+            <p className="text-[9px] text-gray-500">© 2026.08.18.v06 • Desenvolvido por Alvimar Godinho & IA</p>
           </div>
         </div>
         
@@ -1318,6 +1318,30 @@ export default function App() {
                           <div><div className="text-gray-400">Horário</div><div className="font-medium">{r.hora_inicio.substring(0,5)} - {r.hora_fim.substring(0,5)}</div></div>
                           <div><div className="text-gray-400">Pessoas</div><div className="font-medium">{r.quantidade_participantes}</div></div>
                         </div>
+                        
+                        {/* NOVO: Tipo de Reunião e Observações */}
+                        <div className="mb-3 pb-3 border-b border-gray-200 space-y-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-400 font-medium">Tipo:</span>
+                            <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
+                              r.tipo_reuniao === 'Interna' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'
+                            }`}>
+                              {r.tipo_reuniao === 'Interna' ? '👥 Interna (Equipe AMR)' : ' Externa (Clientes)'}
+                            </span>
+                          </div>
+                          {r.observacao && r.observacao !== 'Sem observações' && (
+                            <div>
+                              <span className="text-xs text-gray-400 font-medium">Observações:</span>
+                              <p className="text-xs text-gray-700 mt-1 bg-white p-2 rounded-lg border border-gray-200">
+                                {r.observacao}
+                              </p>
+                            </div>
+                          )}
+                          {r.observacao === 'Sem observações' && (
+                            <div className="text-xs text-gray-400 italic">Sem observações</div>
+                          )}
+                        </div>
+                        
                         <div className="flex gap-2">
                           <button onClick={() => alterarStatusReserva(r.id, 'aprovada')}
                             className="flex-1 flex items-center justify-center gap-1.5 bg-emerald-500 text-white px-4 py-2 rounded-lg hover:bg-emerald-600 transition text-sm font-medium">
