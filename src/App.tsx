@@ -90,6 +90,12 @@ const IconPower = () => (
   </svg>
 );
 
+const IconEdit = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/>
+  </svg>
+);
+
 // ============ LOGO AMR ============
 const IconLogoAMR = ({ size = 'normal' }: { size?: 'normal' | 'small' }) => {
   const isSmall = size === 'small';
@@ -178,6 +184,8 @@ export default function App() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [resetPasswordLoading, setResetPasswordLoading] = useState(false);
   const [nomeUsuarioLogado, setNomeUsuarioLogado] = useState('');
+  const [editandoNomeEmail, setEditandoNomeEmail] = useState<string | null>(null);
+  const [novoNomeEditado, setNovoNomeEditado] = useState('');
 
   const DOMINIO_PERMITIDO = '@amradvogados.com.br';
 
@@ -198,7 +206,11 @@ export default function App() {
       setUser(session?.user ?? null);
       if (session?.user) {
         await checkGestor(session.user.email);
-        const { data: funcData } = await supabase.from('funcionarios_ativos').select('nome').eq('email', session.user.email).maybeSingle();
+        const { data: funcData } = await supabase
+          .from('funcionarios_ativos')
+          .select('nome')
+          .eq('email', session.user.email)
+          .maybeSingle();
         setNomeUsuarioLogado(funcData?.nome || session.user.email.split('@')[0]);
         await carregarDados();
       }
@@ -210,7 +222,11 @@ export default function App() {
       setUser(session?.user ?? null);
       if (session?.user) {
         await checkGestor(session.user.email);
-        const { data: funcData } = await supabase.from('funcionarios_ativos').select('nome').eq('email', session.user.email).maybeSingle();
+        const { data: funcData } = await supabase
+          .from('funcionarios_ativos')
+          .select('nome')
+          .eq('email', session.user.email)
+          .maybeSingle();
         setNomeUsuarioLogado(funcData?.nome || session.user.email.split('@')[0]);
         await carregarDados();
       } else {
@@ -222,7 +238,11 @@ export default function App() {
   }, []);
 
   const checkGestor = async (userEmail: string) => {
-    const { data, error } = await supabase.from('gestores').select('email').eq('email', userEmail).maybeSingle();
+    const { data, error } = await supabase
+      .from('gestores')
+      .select('email')
+      .eq('email', userEmail)
+      .maybeSingle();
     setIsGestor(!!data && !error);
   };
 
@@ -239,7 +259,10 @@ export default function App() {
   };
 
   const carregarFuncionarios = async () => {
-    const { data } = await supabase.from('funcionarios_ativos').select('*').order('nome');
+    const { data } = await supabase
+      .from('funcionarios_ativos')
+      .select('*')
+      .order('nome');
     if (data) setFuncionariosAtivos(data);
   };
 
@@ -269,21 +292,45 @@ export default function App() {
 
   const reservasFiltradas = filtrarReservas(reservasAtivas);
 
+  const salvarNomeFuncionario = async (emailFunc: string) => {
+    if (!novoNomeEditado.trim()) {
+      showToast('❌ O nome não pode estar vazio.', 'error');
+      return;
+    }
+    const { error } = await supabase
+      .from('funcionarios_ativos')
+      .update({ nome: novoNomeEditado.trim() })
+      .eq('email', emailFunc);
+    if (error) {
+      showToast('❌ Erro ao salvar: ' + error.message, 'error');
+    } else {
+      showToast('✅ Nome atualizado com sucesso!', 'success');
+      setEditandoNomeEmail(null);
+      setNovoNomeEditado('');
+      await carregarFuncionarios();
+      if (emailFunc === user?.email) {
+        setNomeUsuarioLogado(novoNomeEditado.trim());
+      }
+    }
+  };
+
   const adicionarFuncionario = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!novoFuncionarioEmail.toLowerCase().endsWith(DOMINIO_PERMITIDO)) {
-      showToast(' Use apenas e-mails corporativos.', 'error');
+      showToast('❌ Use apenas e-mails corporativos.', 'error');
       return;
     }
     if (!novoFuncionarioNome.trim()) {
       showToast('❌ Informe o nome do funcionário.', 'error');
       return;
     }
-    const { error } = await supabase.from('funcionarios_ativos').upsert({
-      email: novoFuncionarioEmail.toLowerCase(),
-      nome: novoFuncionarioNome.trim(),
-      ativo: true
-    });
+    const { error } = await supabase
+      .from('funcionarios_ativos')
+      .upsert({
+        email: novoFuncionarioEmail.toLowerCase(),
+        nome: novoFuncionarioNome.trim(),
+        ativo: true
+      });
     if (error) {
       showToast('❌ Erro: ' + error.message, 'error');
     } else {
@@ -294,8 +341,11 @@ export default function App() {
     }
   };
 
-  const toggleFuncionario = async (email: string, statusAtual: boolean) => {
-    const { error } = await supabase.from('funcionarios_ativos').update({ ativo: !statusAtual }).eq('email', email);
+  const toggleFuncionario = async (emailFunc: string, statusAtual: boolean) => {
+    const { error } = await supabase
+      .from('funcionarios_ativos')
+      .update({ ativo: !statusAtual })
+      .eq('email', emailFunc);
     if (error) {
       showToast('❌ Erro: ' + error.message, 'error');
     } else {
@@ -304,21 +354,26 @@ export default function App() {
     }
   };
 
-  const deletarFuncionario = async (email: string) => {
-    if (!window.confirm(`Tem certeza que deseja DELETAR o usuário ${email}?\n\nEsta ação não pode ser desfeita.`)) {
+  const deletarFuncionario = async (emailFunc: string) => {
+    if (!window.confirm(`Tem certeza que deseja DELETAR o usuário ${emailFunc}?\n\nEsta ação não pode ser desfeita.`)) {
       return;
     }
     setSubmitLoading(true);
-    const { error: errorTabela } = await supabase.from('funcionarios_ativos').delete().eq('email', email);
+    const { error: errorTabela } = await supabase
+      .from('funcionarios_ativos')
+      .delete()
+      .eq('email', emailFunc);
     if (errorTabela) {
       showToast('❌ Erro ao remover da lista: ' + errorTabela.message, 'error');
       setSubmitLoading(false);
       return;
     }
-    const { data: authResult, error: errorAuth } = await supabase.rpc('deletar_usuario_auth', { email_usuario: email });
+    const { data: authResult, error: errorAuth } = await supabase.rpc('deletar_usuario_auth', {
+      email_usuario: emailFunc
+    });
     setSubmitLoading(false);
     if (errorAuth) {
-      showToast('⚠️ Usuário removido da lista, mas erro na autenticação: ' + errorAuth.message, 'warning');
+      showToast('️ Usuário removido da lista, mas erro na autenticação: ' + errorAuth.message, 'warning');
     } else if (authResult && !authResult.success) {
       showToast(`ℹ️ ${authResult.message}`, 'warning');
     } else {
@@ -328,7 +383,10 @@ export default function App() {
   };
 
   const toggleSalaAtiva = async (salaId: number, statusAtual: boolean) => {
-    const { error } = await supabase.from('salas').update({ ativo: !statusAtual }).eq('id', salaId);
+    const { error } = await supabase
+      .from('salas')
+      .update({ ativo: !statusAtual })
+      .eq('id', salaId);
     if (error) {
       showToast('❌ Erro: ' + error.message, 'error');
     } else {
@@ -346,13 +404,19 @@ export default function App() {
       setResetLoading(false);
       return;
     }
-    const { error } = await supabase.auth.resetPasswordForEmail(resetEmail.toLowerCase(), { redirectTo: window.location.origin + '/' });
+    const { error } = await supabase.auth.resetPasswordForEmail(resetEmail.toLowerCase(), {
+      redirectTo: window.location.origin + '/'
+    });
     setResetLoading(false);
     if (error) {
       setResetMessage('❌ Erro: ' + error.message);
     } else {
       setResetMessage('✅ E-mail de redefinição enviado! Verifique sua caixa de entrada (e o spam).');
-      setTimeout(() => { setShowResetModal(false); setResetMessage(''); setResetEmail(''); }, 5000);
+      setTimeout(() => {
+        setShowResetModal(false);
+        setResetMessage('');
+        setResetEmail('');
+      }, 5000);
     }
   };
 
@@ -362,31 +426,15 @@ export default function App() {
       return '❌ E-mail ou senha incorretos, ou conta não existe.\n\nNão tem conta? Clique em "Primeiro acesso? Criar conta" abaixo.';
     }
     if (msg.includes('email not confirmed') || msg.includes('email confirmation')) {
-      return '⚠️ Seu e-mail ainda não foi confirmado. Verifique sua caixa de entrada (e o spam) para ativar sua conta.';
+      return '️ Seu e-mail ainda não foi confirmado. Verifique sua caixa de entrada (e o spam) para ativar sua conta.';
     }
     if (msg.includes('too many requests') || msg.includes('rate limit')) {
       return '⏳ Muitas tentativas de login. Aguarde alguns minutos e tente novamente.';
     }
     if (msg.includes('already registered') || msg.includes('user already registered')) {
-      return '️ Este e-mail já está cadastrado no sistema. Tente fazer login.';
+      return '⚠️ Este e-mail já está cadastrado no sistema. Tente fazer login.';
     }
     return '❌ Erro: ' + errorMsg;
-  };
-
-  const handleResendConfirmation = async (emailParaReenviar: string) => {
-    setAuthError('');
-    setAuthLoading(true);
-    const { error } = await supabase.auth.resend({ type: 'signup', email: emailParaReenviar.toLowerCase() });
-    setAuthLoading(false);
-    if (error) {
-      if (error.message.toLowerCase().includes('rate limit') || error.message.toLowerCase().includes('too many')) {
-        setAuthError('⚠️ Por segurança, aguarde 5 minutos antes de solicitar um novo e-mail.');
-      } else {
-        setAuthError('❌ Erro ao reenviar: ' + error.message);
-      }
-    } else {
-      setAuthError('✅ Um novo e-mail de confirmação foi enviado! Verifique sua caixa de entrada e o spam.');
-    }
   };
 
   const handleAuth = async (e: React.FormEvent) => {
@@ -404,20 +452,27 @@ export default function App() {
       if (isRegistering) {
         const senhaForte = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
         if (!senhaForte.test(password)) {
-          const msg = ' A senha deve ter pelo menos 8 caracteres, incluindo:\n• 1 letra maiúscula\n• 1 letra minúscula\n• 1 número';
+          const msg = '❌ A senha deve ter pelo menos 8 caracteres, incluindo:\n• 1 letra maiúscula\n• 1 letra minúscula\n• 1 número';
           setAuthError(msg);
           showToast('Senha fraca', 'error');
           setAuthLoading(false);
           return;
         }
-        const { data: funcionarioAtivo } = await supabase.from('funcionarios_ativos').select('ativo').eq('email', email.toLowerCase()).maybeSingle();
+        const { data: funcionarioAtivo } = await supabase
+          .from('funcionarios_ativos')
+          .select('ativo')
+          .eq('email', email.toLowerCase())
+          .maybeSingle();
         if (!funcionarioAtivo || !funcionarioAtivo.ativo) {
           setAuthError('❌ Seu e-mail não está autorizado. Contate o gestor.');
           showToast('E-mail não autorizado', 'error');
           setAuthLoading(false);
           return;
         }
-        const { error } = await supabase.auth.signUp({ email: email.toLowerCase(), password });
+        const { error } = await supabase.auth.signUp({
+          email: email.toLowerCase(),
+          password
+        });
         if (error) {
           if (error.message.includes('already registered')) {
             setAuthError('⚠️ Este e-mail já está cadastrado. Tente fazer login.');
@@ -434,7 +489,10 @@ export default function App() {
         setIsRegistering(false);
         setAuthLoading(false);
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email: email.toLowerCase(), password });
+        const { error } = await supabase.auth.signInWithPassword({
+          email: email.toLowerCase(),
+          password
+        });
         if (error) {
           const msg = traduzirErro(error.message);
           setAuthError(msg);
@@ -442,7 +500,11 @@ export default function App() {
           setAuthLoading(false);
           return;
         }
-        const { data: funcionarioAtivo } = await supabase.from('funcionarios_ativos').select('ativo').eq('email', email.toLowerCase()).maybeSingle();
+        const { data: funcionarioAtivo } = await supabase
+          .from('funcionarios_ativos')
+          .select('ativo')
+          .eq('email', email.toLowerCase())
+          .maybeSingle();
         if (!funcionarioAtivo || !funcionarioAtivo.ativo) {
           await supabase.auth.signOut();
           setAuthError('❌ Sua conta foi desativada. Contate o gestor.');
@@ -473,15 +535,15 @@ export default function App() {
     const salaEscolhida = salas.find(s => s.id === parseInt(selectedSala));
     const qtd = parseInt(qtdParticipantes);
     if (qtd < 1) {
-      showToast('⚠️ A quantidade de participantes deve ser pelo menos 1.', 'warning');
+      showToast('️ A quantidade de participantes deve ser pelo menos 1.', 'warning');
       return;
     }
     if (!isGestor && qtd > salaEscolhida.capacidade_maxima) {
-      showToast(`️ A capacidade máxima da ${salaEscolhida.nome} é de ${salaEscolhida.capacidade_maxima} pessoas.`, 'warning');
+      showToast(`⚠️ A capacidade máxima da ${salaEscolhida.nome} é de ${salaEscolhida.capacidade_maxima} pessoas.`, 'warning');
       return;
     }
     if (horaFim <= horaInicio) {
-      showToast('️ O horário de término deve ser posterior ao horário de início.', 'warning');
+      showToast('⚠️ O horário de término deve ser posterior ao horário de início.', 'warning');
       return;
     }
     if (dataReserva < hojeLocal) {
@@ -527,12 +589,14 @@ export default function App() {
     }]);
     setSubmitLoading(false);
     if (error) {
-      showToast('❌ Erro ao enviar: ' + error.message, 'error');
+      showToast(' Erro ao enviar: ' + error.message, 'error');
     } else {
       showToast(isGestor ? '✅ Reserva criada e aprovada automaticamente!' : '✅ Solicitação enviada! Aguarde a avaliação do gestor.', 'success');
       setQtdParticipantes('');
       setHoraInicio('');
       setHoraFim('');
+      setObservacao('');
+      setSemObservacao(false);
       await carregarDados();
     }
   };
@@ -561,7 +625,10 @@ export default function App() {
   };
 
   const salvarObservacaoGestor = async (id: number) => {
-    const { error } = await supabase.from('reservas').update({ observacao: novaObsEditada }).eq('id', id);
+    const { error } = await supabase
+      .from('reservas')
+      .update({ observacao: novaObsEditada })
+      .eq('id', id);
     if (error) {
       showToast('❌ Erro ao salvar: ' + error.message, 'error');
     } else {
@@ -576,12 +643,12 @@ export default function App() {
     setResetPasswordLoading(true);
     const senhaForte = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
     if (!senhaForte.test(newPassword)) {
-      showToast('️ A senha deve ter pelo menos 8 caracteres, incluindo:\n• 1 letra maiúscula\n• 1 letra minúscula\n• 1 número', 'error');
+      showToast('⚠️ A senha deve ter pelo menos 8 caracteres, incluindo:\n• 1 letra maiúscula\n• 1 letra minúscula\n• 1 número', 'error');
       setResetPasswordLoading(false);
       return;
     }
     if (newPassword !== confirmPassword) {
-      showToast(' As senhas não coincidem', 'error');
+      showToast('❌ As senhas não coincidem', 'error');
       setResetPasswordLoading(false);
       return;
     }
@@ -654,16 +721,35 @@ export default function App() {
             <p className="text-white/70 text-sm mt-4">Sistema Corporativo de Reservas de Salas</p>
           </div>
           <div className="relative z-10 space-y-6">
-            <h2 className="text-4xl font-bold leading-tight" style={{ fontFamily: 'Georgia, serif' }}>Gestão inteligente<br/>de salas de reunião</h2>
-            <p className="text-white/70 text-lg max-w-md">Controle de ocupação, aprovação em tempo real e visão completa da agenda de salas de reunião da AMR Advogados.</p>
+            <h2 className="text-4xl font-bold leading-tight" style={{ fontFamily: 'Georgia, serif' }}>
+              Gestão inteligente <br />de salas de reunião
+            </h2>
+            <p className="text-white/70 text-lg max-w-md">
+              Controle de ocupação, aprovação em tempo real e visão completa da agenda de salas de reunião da AMR Advogados.
+            </p>
             <div className="flex gap-8 pt-4">
-              <div><div className="text-3xl font-bold" style={{ color: '#E7BE92' }}>3</div><div className="text-sm text-white/60">Salas</div></div>
-              <div><div className="text-3xl font-bold" style={{ color: '#E7BE92' }}>24/7</div><div className="text-sm text-white/60">Disponível</div></div>
-              <div><div className="text-3xl font-bold" style={{ color: '#E7BE92' }}>100%</div><div className="text-sm text-white/60">Online</div></div>
+              <div>
+                <div className="text-3xl font-bold" style={{ color: '#E7BE92' }}>3</div>
+                <div className="text-sm text-white/60">Salas</div>
+              </div>
+              <div>
+                <div className="text-3xl font-bold" style={{ color: '#E7BE92' }}>24/7</div>
+                <div className="text-sm text-white/60">Disponível</div>
+              </div>
+              <div>
+                <div className="text-3xl font-bold" style={{ color: '#E7BE92' }}>100%</div>
+                <div className="text-sm text-white/60">Online</div>
+              </div>
             </div>
           </div>
-          <div className="relative z-10 text-sm text-white/40">© 2026 AMR Advogados • Abegg, Macorim & Rotta</div>
-          <div className="relative z-10 text-[10px] text-white/25 tracking-wide">© 2026.08.18.v06 • Desenvolvido por Alvimar Godinho & IA</div>
+          <div className="relative z-10 flex flex-col gap-1.5">
+            <div className="text-xs text-white/40">
+              © 2026 AMR Advogados • Abegg, Macorim & Rotta. Todos os direitos reservados.
+            </div>
+            <div className="text-[10px] text-white/25 tracking-wide">
+              © 2026.08.19.v07 • Desenvolvido por Alvimar Godinho & IA
+            </div>
+          </div>
         </div>
         <div className="flex-1 flex items-center justify-center p-6 bg-gray-50">
           <div className="w-full max-w-md">
@@ -673,8 +759,12 @@ export default function App() {
               </div>
             </div>
             <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
-              <h2 className="text-2xl font-bold text-[#263448] mb-1" style={{ fontFamily: 'Georgia, serif' }}>{isRegistering ? 'Criar sua conta' : 'Bem-vindo de volta'}</h2>
-              <p className="text-sm text-gray-500 mb-6">{isRegistering ? 'Use seu e-mail corporativo' : 'Entre com suas credenciais'}</p>
+              <h2 className="text-2xl font-bold text-[#263448] mb-1" style={{ fontFamily: 'Georgia, serif' }}>
+                {isRegistering ? 'Criar sua conta' : 'Bem-vindo de volta'}
+              </h2>
+              <p className="text-sm text-gray-500 mb-6">
+                {isRegistering ? 'Use seu e-mail corporativo' : 'Entre com suas credenciais'}
+              </p>
               <form onSubmit={handleAuth} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">E-mail corporativo</label>
@@ -687,14 +777,6 @@ export default function App() {
                 {authError && (
                   <div className="p-3 bg-red-50 border border-red-200 rounded-xl">
                     <p className="text-red-700 text-xs whitespace-pre-line">{authError}</p>
-                    {!isRegistering && (
-                      <div className="mt-2 flex flex-col gap-2">
-                        {authError.toLowerCase().includes('confirm') && (
-                          <button onClick={() => handleResendConfirmation(email)} className="text-xs text-blue-600 hover:text-blue-700 font-semibold underline text-left"> Reenviar e-mail de confirmação</button>
-                        )}
-                        <button onClick={() => { setIsRegistering(true); setAuthError(''); }} className="text-xs text-[#633627] hover:text-[#633627]/80 font-semibold underline text-left">👤 Criar minha conta agora</button>
-                      </div>
-                    )}
                   </div>
                 )}
                 <button type="submit" disabled={authLoading} className="w-full bg-[#263448] text-white py-2.5 rounded-xl font-semibold hover:bg-[#1a2633] transition disabled:opacity-50">
@@ -757,7 +839,7 @@ export default function App() {
             </div>
             <div>
               <h1 className="font-bold text-[#263448]" style={{ fontFamily: 'Georgia, serif' }}>AgendaSalas</h1>
-              <p className="text-[9px] text-gray-500">© 2026.08.18.v06 • Desenvolvido por Alvimar Godinho & IA</p>
+              <p className="text-[9px] text-gray-500">© 2026.08.19.v07 • Desenvolvido por Alvimar Godinho & IA</p>
             </div>
           </div>
           <div className="flex items-center gap-4">
@@ -783,6 +865,7 @@ export default function App() {
           </div>
         </div>
       </header>
+
       <div className="max-w-7xl mx-auto px-6 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
@@ -849,6 +932,7 @@ export default function App() {
               </button>
             </form>
           </div>
+
           <div className="lg:col-span-2 space-y-4">
             <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
               <h2 className="text-lg font-bold mb-4 text-[#263448] flex items-center gap-2" style={{ fontFamily: 'Georgia, serif' }}>
@@ -885,11 +969,17 @@ export default function App() {
                 )}
               </div>
               {(filtroDataInicio !== new Date().toISOString().split('T')[0] || filtroDataFim !== new Date().toISOString().split('T')[0] || filtroSala || (isGestor && filtroStatus !== 'todas')) && (
-                <button onClick={() => { setFiltroDataInicio(new Date().toISOString().split('T')[0]); setFiltroDataFim(new Date().toISOString().split('T')[0]); setFiltroSala(''); setFiltroStatus('todas'); }} className="mt-3 text-xs text-[#633627] hover:text-[#633627]/80 font-medium">
+                <button onClick={() => {
+                  setFiltroDataInicio(new Date().toISOString().split('T')[0]);
+                  setFiltroDataFim(new Date().toISOString().split('T')[0]);
+                  setFiltroSala('');
+                  setFiltroStatus('todas');
+                }} className="mt-3 text-xs text-[#633627] hover:text-[#633627]/80 font-medium">
                   Limpar filtros
                 </button>
               )}
             </div>
+
             <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
               <h2 className="text-lg font-bold mb-4 text-[#263448] flex items-center gap-2" style={{ fontFamily: 'Georgia, serif' }}>
                 <div className="w-8 h-8 bg-[#263448]/10 rounded-lg flex items-center justify-center text-[#263448]">
@@ -961,6 +1051,7 @@ export default function App() {
                 )}
               </div>
             </div>
+
             {isGestor && (
               <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
                 <h2 className="text-lg font-bold mb-4 text-[#263448] flex items-center gap-2" style={{ fontFamily: 'Georgia, serif' }}>
@@ -1029,6 +1120,7 @@ export default function App() {
           </div>
         </div>
       </div>
+
       {showUserManagement && isGestor && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
@@ -1061,23 +1153,38 @@ export default function App() {
                 <div className="space-y-2">
                   {funcionariosAtivos.map(f => (
                     <div key={f.email} className={`p-4 rounded-xl border flex items-center justify-between ${f.ativo ? 'border-emerald-200 bg-emerald-50' : 'border-gray-200 bg-gray-50 opacity-60'}`}>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 flex-1">
                         <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${f.ativo ? 'bg-emerald-500 text-white' : 'bg-gray-300 text-gray-600'}`}>
-                          {f.email.charAt(0).toUpperCase()}
+                          {(f.nome || f.email).charAt(0).toUpperCase()}
                         </div>
-                        <div>
-                          <div className="font-medium text-gray-800">{f.nome || f.email}</div>
-                          <div className="text-xs text-gray-500">
-                            {f.email} • {f.ativo ? '✅ Ativo' : '🚫 Desativado'}
-                          </div>
+                        <div className="flex-1">
+                          {editandoNomeEmail === f.email ? (
+                            <div className="flex gap-2 items-center flex-wrap">
+                              <input type="text" value={novoNomeEditado} onChange={e => setNovoNomeEditado(e.target.value)} className="flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#E7BE92] outline-none" autoFocus placeholder="Nome completo" />
+                              <button onClick={() => salvarNomeFuncionario(f.email)} className="px-3 py-1.5 bg-emerald-500 text-white rounded-lg text-xs font-medium hover:bg-emerald-600 transition">Salvar</button>
+                              <button onClick={() => { setEditandoNomeEmail(null); setNovoNomeEditado(''); }} className="px-3 py-1.5 bg-gray-200 text-gray-700 rounded-lg text-xs font-medium hover:bg-gray-300 transition">Cancelar</button>
+                            </div>
+                          ) : (
+                            <>
+                              <div className="font-medium text-gray-800">{f.nome || f.email}</div>
+                              <div className="text-xs text-gray-500">
+                                {f.email} • {f.ativo ? '✅ Ativo' : '🚫 Desativado'}
+                              </div>
+                            </>
+                          )}
                         </div>
                       </div>
-                      <button onClick={() => toggleFuncionario(f.email, f.ativo)} className={`px-4 py-2 rounded-lg font-medium text-sm transition ${f.ativo ? 'bg-red-100 text-red-700 hover:bg-red-200' : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'}`}>
-                        {f.ativo ? 'Desativar' : 'Reativar'}
-                      </button>
-                      <button onClick={() => deletarFuncionario(f.email)} className="px-4 py-2 rounded-lg font-medium text-sm transition bg-gray-100 text-gray-700 hover:bg-gray-200 flex items-center gap-1" title="Deletar usuário permanentemente">
-                        <IconTrash /> Deletar
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => { setEditandoNomeEmail(f.email); setNovoNomeEditado(f.nome || ''); }} className="px-3 py-2 rounded-lg font-medium text-sm transition bg-blue-100 text-blue-700 hover:bg-blue-200 flex items-center gap-1" title="Editar nome">
+                          <IconEdit /> Editar
+                        </button>
+                        <button onClick={() => toggleFuncionario(f.email, f.ativo)} className={`px-4 py-2 rounded-lg font-medium text-sm transition ${f.ativo ? 'bg-red-100 text-red-700 hover:bg-red-200' : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'}`}>
+                          {f.ativo ? 'Desativar' : 'Reativar'}
+                        </button>
+                        <button onClick={() => deletarFuncionario(f.email)} className="px-4 py-2 rounded-lg font-medium text-sm transition bg-gray-100 text-gray-700 hover:bg-gray-200 flex items-center gap-1" title="Deletar usuário permanentemente">
+                          <IconTrash /> Deletar
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -1086,6 +1193,7 @@ export default function App() {
           </div>
         </div>
       )}
+
       {showRoomManagement && isGestor && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
