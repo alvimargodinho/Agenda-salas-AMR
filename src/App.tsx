@@ -944,13 +944,29 @@ export default function App() {
               <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Data Inicial</label>
-                  <input type="date" value={filtroDataInicio} onChange={e => setFiltroDataInicio(e.target.value)} className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#E7BE92] outline-none text-sm" />
+                  <input 
+                    type="date" 
+                    value={filtroDataInicio} 
+                    onChange={e => {
+                      setFiltroDataInicio(e.target.value);
+                      // Se a nova data inicial for maior que a final, ajusta a final automaticamente
+                      if (e.target.value > filtroDataFim) {
+                        setFiltroDataFim(e.target.value);
+                      }
+                    }}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#E7BE92] outline-none text-sm" 
+                  />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Data Final</label>
-                  <input type="date" value={filtroDataFim} onChange={e => setFiltroDataFim(e.target.value)} className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#E7BE92] outline-none text-sm" />
+                  <input 
+                    type="date" 
+                    value={filtroDataFim} 
+                    onChange={e => setFiltroDataFim(e.target.value)}
+                    min={filtroDataInicio} // Impede o usuário de selecionar uma data anterior à inicial
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#E7BE92] outline-none text-sm" 
+                  />
                 </div>
-                <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Sala</label>
                   <select value={filtroSala} onChange={e => setFiltroSala(e.target.value)} className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#E7BE92] outline-none bg-white text-sm">
                     <option value="">Todas as salas</option>
